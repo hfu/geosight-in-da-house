@@ -47,6 +47,9 @@ just doit
 - **ユーザー名**: admin
 - **パスワード**: admin
 
+> ⚠️ **重要 / Important**: 初回ログイン後、すぐに管理者パスワードを変更してください！
+> After first login, change the admin password immediately!
+
 ## タスク一覧 / Available Tasks
 
 | タスク | 説明 |
