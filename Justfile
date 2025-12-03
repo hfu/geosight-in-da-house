@@ -227,6 +227,19 @@ run: _check-docker _check-geosight
     #!/usr/bin/env bash
     set -euo pipefail
     
+    # Function to detect and set platform
+    set_docker_platform() {
+        local arch=$(uname -m)
+        if [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
+            export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+            echo "🔧 Detected ARM64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/arm64"
+        else
+            export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+            echo "🔧 Detected AMD64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/amd64"
+        fi
+        echo ""
+    }
+    
     echo "======================================"
     echo "  Starting GeoSight"
     echo "======================================"
@@ -239,15 +252,7 @@ run: _check-docker _check-geosight
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
     
     # Detect platform for Docker
-    ARCH=$(uname -m)
-    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
-        export DOCKER_DEFAULT_PLATFORM="linux/arm64"
-        echo "🔧 Detected ARM64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/arm64"
-    else
-        export DOCKER_DEFAULT_PLATFORM="linux/amd64"
-        echo "🔧 Detected AMD64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/amd64"
-    fi
-    echo ""
+    set_docker_platform
     
     # Create redis directory with correct permissions (required for redis container)
     REDIS_DIR="deployment/volumes/tmp_data/redis"
@@ -279,6 +284,7 @@ run: _check-docker _check-geosight
     echo "⏳ Waiting for database to be ready..."
     # Wait for database to be ready with proper health check
     # Timeout: 60 attempts × 5 seconds = 5 minutes maximum wait
+    # Note: Docker Compose files are specified inline for clarity
     MAX_ATTEMPTS=60
     ATTEMPT=0
     while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
@@ -340,6 +346,16 @@ restart: stop
     #!/usr/bin/env bash
     set -euo pipefail
     
+    # Function to detect and set platform
+    set_docker_platform() {
+        local arch=$(uname -m)
+        if [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
+            export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+        else
+            export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+        fi
+    }
+    
     echo "🔄 Restarting GeoSight..."
     cd {{GEOSIGHT_DIR}}
     
@@ -347,12 +363,7 @@ restart: stop
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
     
     # Detect platform for Docker
-    ARCH=$(uname -m)
-    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
-        export DOCKER_DEFAULT_PLATFORM="linux/arm64"
-    else
-        export DOCKER_DEFAULT_PLATFORM="linux/amd64"
-    fi
+    set_docker_platform
     
     # Ensure redis directory has correct permissions
     sudo chown -R 999:999 deployment/volumes/tmp_data/redis 2>/dev/null || true
