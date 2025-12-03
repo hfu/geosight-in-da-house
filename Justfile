@@ -45,11 +45,6 @@ _check-geosight:
         exit 1
     fi
 
-# Generate a random secret key
-_generate-secret-key:
-    #!/usr/bin/env bash
-    openssl rand -base64 32 | tr -d '/+=' | head -c 50
-
 # Install all required packages and clone GeoSight-OS
 install:
     #!/usr/bin/env bash
@@ -88,7 +83,7 @@ install:
         echo "   Please log out and log back in, then run:"
         echo "   just install"
         echo ""
-        exit 0
+        exit 2
     fi
     
     # Verify docker works
@@ -154,7 +149,7 @@ install:
             echo ""
             echo "# Redis configuration (password randomly generated)"
             echo "REDIS_HOST=redis"
-            echo "REDIS_PASSWORD=${REDIS_PASS}"
+            echo "REDIS_PASSWORD=${REDIS_PASSWORD}"
             echo ""
             echo "# Database configuration (password randomly generated)"
             echo "DATABASE_NAME=django"
