@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Automatic platform detection and configuration for Docker (ARM64/AMD64)
+- Robust database readiness check using `pg_isready` before initialization
+- Platform-specific troubleshooting guidance in README.md
+- Comprehensive "Why This Project is Valuable" section in README.md explaining:
+  - Democratization of geospatial technology
+  - Edge computing demonstration
+  - Setup automation benefits
+  - Contribution to UN Smart Maps community
+  - Practical use cases (disaster response, field work, education, development)
 - Initial Justfile-based automation for GeoSight deployment on Raspberry Pi OS trixie 64-bit
 - Comprehensive bilingual (English/Japanese) README.md documentation
 - 12 Justfile tasks for complete lifecycle management:
@@ -37,12 +46,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - .gitignore to exclude cloned GeoSight-OS directory and temporary files
 
 ### Changed
+- Replaced simple 60-second sleep with intelligent database health check
+- Database initialization now waits up to 5 minutes with proper health verification
+- `DOCKER_DEFAULT_PLATFORM` environment variable automatically set based on architecture
+- Enhanced error messages with actionable troubleshooting steps
+- Improved service startup reliability by verifying database readiness before initialization
 - License changed from MIT to CC0 1.0 Universal (Public Domain)
   - Aligns with UN Smart Maps Group conventions
   - Clarified that project only provides automation scripts, not GeoSight-OS modifications
   - AGPL copyleft does not apply as GeoSight-OS is not modified or redistributed
 
 ### Fixed
+- **Critical**: Fixed platform mismatch error on ARM64 systems by setting `DOCKER_DEFAULT_PLATFORM`
+- **Critical**: Fixed "could not translate host name 'db'" error by implementing proper database readiness checks
+- Improved container startup reliability by waiting for actual service readiness instead of fixed timeouts
+- Added proper exit codes and error handling for database connection failures
 - Removed unused `_generate-secret-key` recipe from Justfile
 - Fixed variable name inconsistency: REDIS_PASS → REDIS_PASSWORD throughout
 - Fixed exit code handling in docker group addition (exit 2 for proper doit task handling)

@@ -238,6 +238,17 @@ run: _check-docker _check-geosight
     export COMPOSE_HTTP_TIMEOUT={{COMPOSE_HTTP_TIMEOUT}}
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
     
+    # Detect platform for Docker
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+        export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+        echo "🔧 Detected ARM64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/arm64"
+    else
+        export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+        echo "🔧 Detected AMD64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/amd64"
+    fi
+    echo ""
+    
     # Create redis directory with correct permissions (required for redis container)
     REDIS_DIR="deployment/volumes/tmp_data/redis"
     if [ ! -d "$REDIS_DIR" ]; then
@@ -265,8 +276,30 @@ run: _check-docker _check-geosight
     make dev
     
     echo ""
-    echo "⏳ Waiting for services to initialize (60 seconds)..."
-    sleep 60
+    echo "⏳ Waiting for database to be ready..."
+    # Wait for database to be ready with proper health check
+    MAX_ATTEMPTS=60
+    ATTEMPT=0
+    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+        if docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.override.yml \
+            exec -T db pg_isready -U docker -d django &>/dev/null; then
+            echo "✅ Database is ready!"
+            break
+        fi
+        ATTEMPT=$((ATTEMPT + 1))
+        echo "   Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting 5 seconds..."
+        sleep 5
+    done
+    
+    if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+        echo "❌ Database failed to become ready after $MAX_ATTEMPTS attempts"
+        echo "   Check logs with: just logs"
+        exit 1
+    fi
+    
+    # Additional wait for other services
+    echo "⏳ Waiting for other services to initialize (30 seconds)..."
+    sleep 30
     
     # Initialize the application
     echo "🔧 Initializing GeoSight database and settings..."
@@ -311,6 +344,14 @@ restart: stop
     
     export COMPOSE_HTTP_TIMEOUT={{COMPOSE_HTTP_TIMEOUT}}
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
+    
+    # Detect platform for Docker
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+        export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+    else
+        export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+    fi
     
     # Ensure redis directory has correct permissions
     sudo chown -R 999:999 deployment/volumes/tmp_data/redis 2>/dev/null || true
