@@ -20,6 +20,8 @@ GeoSight は UNICEF の地理空間ビジネスインテリジェンスプラッ
 - インターネット接続
 - [just](https://github.com/casey/just) コマンドラインランナー
 
+> 💡 **Tip**: [niroku](https://github.com/unvt/niroku) を事前に導入している場合、just は既にインストールされているため、以下のインストール手順をスキップできます。niroku は UNVT Portable の新実装で、Raspberry Pi 上にオフライン地図サーバーを構築するための包括的なツールセットを提供します。
+
 ### just のインストール
 
 ```bash
@@ -41,6 +43,8 @@ cd geosight-in-da-house
 # インストールと起動を一度に実行
 just doit
 ```
+
+> ⚠️ **注意 / Note**: 初回インストール時に Docker グループへの追加が必要な場合、`just install` が途中で終了します。その場合は、ログアウト・ログインして `just run` を実行してください。詳細は[トラブルシューティング](#docker-グループエラー)を参照してください。
 
 セットアップが完了したら、ブラウザで http://localhost:2000/ にアクセスしてください。
 
@@ -211,9 +215,20 @@ Raspberry Pi では Docker イメージのビルドに時間がかかります�
 
 ## ライセンス / License
 
-このプロジェクトは MIT ライセンスの下で公開されています。
+このプロジェクトは CC0 1.0 Universal (パブリックドメイン) の下で公開されています。
 
-GeoSight-OS 自体は [GNU AGPL v3](https://github.com/unicef-drp/GeoSight-OS/blob/main/LICENSE) の下でライセンスされています。
+**重要な注意事項 / Important Notes:**
+
+- **本プロジェクトの範囲**: このリポジトリは、GeoSight-OS を Raspberry Pi 上で起動するための自動化スクリプト（Justfile）とドキュメントのみを含みます。GeoSight-OS 本体のコードは含まれておらず、改変や再配布も行いません。
+- **GeoSight-OS のライセンス**: GeoSight-OS 本体は [GNU AGPL v3](https://github.com/unicef-drp/GeoSight-OS/blob/main/LICENSE) の下でライセンスされています。
+- **AGPL の伝搬性**: 本プロジェクトは GeoSight-OS を使用するための設定とセットアップを提供するだけであり、GeoSight-OS のソースコードを改変していないため、AGPL のコピーレフト条項は本プロジェクトには適用されません。
+- **UN Smart Maps での貢献**: UN Smart Maps グループでの @hfu の貢献は通常 CC0 として提供されます。
+
+### What this means / 意味するところ
+
+This project (the Justfile and documentation) is released into the public domain under CC0. You can use, modify, and distribute it freely without restrictions. However, GeoSight-OS itself remains under GNU AGPL v3, which applies if you modify or distribute GeoSight-OS.
+
+本プロジェクト（Justfile とドキュメント）はCC0でパブリックドメインとして公開されています。制限なく自由に使用、改変、配布できます。ただし、GeoSight-OS 自体は GNU AGPL v3 のままであり、GeoSight-OS を改変または配布する場合にはそのライセンスが適用されます。
 
 ## 貢献 / Contributing
 

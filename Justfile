@@ -422,7 +422,32 @@ tunnel: _check-geosight
     cloudflared tunnel --url http://localhost:{{HTTP_PORT}}
 
 # Run install and then run (full setup)
-doit: install run
+# Note: This may require manual intervention if docker group needs to be applied
+doit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "======================================"
+    echo "  Full GeoSight Setup (doit)"
+    echo "======================================"
+    echo ""
+    
+    # Run install first
+    just install
+    INSTALL_EXIT=$?
+    
+    # If install exited with code 0, docker group was already set, proceed to run
+    if [ $INSTALL_EXIT -eq 0 ]; then
+        echo ""
+        echo "✅ Installation complete, proceeding to run..."
+        just run
+    else
+        # Install exited early, likely due to docker group addition
+        echo ""
+        echo "⚠️  Installation requires re-login to apply docker group."
+        echo "   After logging back in, run: just run"
+        exit 0
+    fi
 
 # Show container status
 status: _check-docker
