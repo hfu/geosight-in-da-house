@@ -64,7 +64,7 @@ install:
     sudo apt-get install -y \
         git \
         docker.io \
-        docker-compose \
+        docker-compose-plugin \
         curl \
         make \
         openssl

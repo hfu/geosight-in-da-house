@@ -80,7 +80,7 @@ just install
 ```
 
 このコマンドは以下を実行します：
-1. 必要なパッケージ（git, docker.io, docker-compose, curl, make）のインストール
+1. 必要なパッケージ（git, docker.io, docker-compose-plugin, curl, make）のインストール
 2. Docker サービスの有効化と起動
 3. 現在のユーザーを docker グループに追加
 4. GeoSight-OS リポジトリのクローン
