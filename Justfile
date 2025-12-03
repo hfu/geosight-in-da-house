@@ -244,12 +244,23 @@ run: _check-docker _check-geosight
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
     
     # Create redis directory with correct permissions (required for redis container)
-    if [ ! -d deployment/volumes/tmp_data/redis ]; then
+    REDIS_DIR="deployment/volumes/tmp_data/redis"
+    if [ ! -d "$REDIS_DIR" ]; then
         echo "📁 Creating Redis directory with correct permissions..."
-        sudo mkdir -p deployment/volumes/tmp_data/redis
-        sudo chown -R 999:999 deployment/volumes/tmp_data/redis
-    else
-        sudo chown -R 999:999 deployment/volumes/tmp_data/redis
+        if ! sudo mkdir -p "$REDIS_DIR"; then
+            echo "❌ Failed to create Redis directory: $REDIS_DIR"
+            exit 1
+        fi
+    fi
+    # Check ownership and fix if needed
+    OWNER_UID=$(stat -c '%u' "$REDIS_DIR")
+    OWNER_GID=$(stat -c '%g' "$REDIS_DIR")
+    if [ "$OWNER_UID" != "999" ] || [ "$OWNER_GID" != "999" ]; then
+        echo "🔑 Fixing Redis directory ownership to 999:999..."
+        if ! sudo chown -R 999:999 "$REDIS_DIR"; then
+            echo "❌ Failed to set ownership on Redis directory: $REDIS_DIR"
+            exit 1
+        fi
     fi
     
     # Run development mode
