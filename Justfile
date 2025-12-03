@@ -116,7 +116,7 @@ install:
     # Generate random secret key and passwords for security
     SECRET_KEY=$(openssl rand -base64 32 | tr -d '/+=' | head -c 50)
     DB_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=' | head -c 16)
-    REDIS_PASS=$(openssl rand -base64 16 | tr -d '/+=' | head -c 16)
+    REDIS_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=' | head -c 16)
     
     # Get port from Justfile variable (passed through)
     HTTP_PORT_VAL="{{HTTP_PORT}}"
