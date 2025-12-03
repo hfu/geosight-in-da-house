@@ -226,8 +226,6 @@ install:
     echo "⚠️  SECURITY REMINDER:"
     echo "  Change the admin password immediately after first login!"
     echo ""
-    echo "  3. Login with admin / admin"
-    echo ""
 
 # Run GeoSight in development mode
 run: _check-docker _check-geosight
