@@ -232,6 +232,8 @@ This project (the Justfile and documentation) is released into the public domain
 
 Issues や Pull Requests を歓迎します。
 
+変更履歴については [CHANGELOG.md](CHANGELOG.md) を参照してください。
+
 ---
 
 Made with ❤️ by [hfu](https://github.com/hfu) and GitHub Copilot

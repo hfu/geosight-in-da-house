@@ -450,7 +450,7 @@ doit:
         echo ""
         echo "⚠️  Installation requires re-login to apply docker group."
         echo "   After logging back in, run: just run"
-        exit 2
+        exit 0
     fi
 
 # Show container status
