@@ -278,21 +278,22 @@ run: _check-docker _check-geosight
     echo ""
     echo "⏳ Waiting for database to be ready..."
     # Wait for database to be ready with proper health check
+    # Timeout: 60 attempts × 5 seconds = 5 minutes maximum wait
     MAX_ATTEMPTS=60
     ATTEMPT=0
     while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+        ATTEMPT=$((ATTEMPT + 1))
         if docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.override.yml \
             exec -T db pg_isready -U docker -d django &>/dev/null; then
-            echo "✅ Database is ready!"
+            echo "✅ Database is ready (after $ATTEMPT attempts)!"
             break
         fi
-        ATTEMPT=$((ATTEMPT + 1))
         echo "   Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting 5 seconds..."
         sleep 5
     done
     
     if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-        echo "❌ Database failed to become ready after $MAX_ATTEMPTS attempts"
+        echo "❌ Database failed to become ready after $MAX_ATTEMPTS attempts (5 minutes)"
         echo "   Check logs with: just logs"
         exit 1
     fi
