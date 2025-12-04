@@ -227,6 +227,19 @@ run: _check-docker _check-geosight
     #!/usr/bin/env bash
     set -euo pipefail
     
+    # Function to detect and set platform
+    set_docker_platform() {
+        local arch=$(uname -m)
+        if [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
+            export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+            echo "🔧 Detected ARM64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/arm64"
+        else
+            export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+            echo "🔧 Detected AMD64 architecture - setting DOCKER_DEFAULT_PLATFORM=linux/amd64"
+        fi
+        echo ""
+    }
+    
     echo "======================================"
     echo "  Starting GeoSight"
     echo "======================================"
@@ -237,6 +250,9 @@ run: _check-docker _check-geosight
     # Set Docker timeouts for Raspberry Pi (slower I/O)
     export COMPOSE_HTTP_TIMEOUT={{COMPOSE_HTTP_TIMEOUT}}
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
+    
+    # Detect platform for Docker
+    set_docker_platform
     
     # Create redis directory with correct permissions (required for redis container)
     REDIS_DIR="deployment/volumes/tmp_data/redis"
@@ -265,8 +281,32 @@ run: _check-docker _check-geosight
     make dev
     
     echo ""
-    echo "⏳ Waiting for services to initialize (60 seconds)..."
-    sleep 60
+    echo "⏳ Waiting for database to be ready..."
+    # Wait for database to be ready with proper health check
+    # Timeout: 60 attempts × 5 seconds = 5 minutes maximum wait
+    # Note: Docker Compose files are specified inline for clarity
+    MAX_ATTEMPTS=60
+    ATTEMPT=0
+    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+        ATTEMPT=$((ATTEMPT + 1))
+        if docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.override.yml \
+            exec -T db pg_isready -U docker -d django &>/dev/null; then
+            echo "✅ Database is ready (after $ATTEMPT attempts)!"
+            break
+        fi
+        echo "   Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting 5 seconds..."
+        sleep 5
+    done
+    
+    if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+        echo "❌ Database failed to become ready after $MAX_ATTEMPTS attempts (5 minutes)"
+        echo "   Check logs with: just logs"
+        exit 1
+    fi
+    
+    # Additional wait for other services
+    echo "⏳ Waiting for other services to initialize (30 seconds)..."
+    sleep 30
     
     # Initialize the application
     echo "🔧 Initializing GeoSight database and settings..."
@@ -306,11 +346,24 @@ restart: stop
     #!/usr/bin/env bash
     set -euo pipefail
     
+    # Function to detect and set platform
+    set_docker_platform() {
+        local arch=$(uname -m)
+        if [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
+            export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+        else
+            export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+        fi
+    }
+    
     echo "🔄 Restarting GeoSight..."
     cd {{GEOSIGHT_DIR}}
     
     export COMPOSE_HTTP_TIMEOUT={{COMPOSE_HTTP_TIMEOUT}}
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
+    
+    # Detect platform for Docker
+    set_docker_platform
     
     # Ensure redis directory has correct permissions
     sudo chown -R 999:999 deployment/volumes/tmp_data/redis 2>/dev/null || true

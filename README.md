@@ -8,6 +8,51 @@ Raspberry Pi 上で [GeoSight](https://github.com/unicef-drp/GeoSight-OS) を簡
 
 GeoSight は UNICEF の地理空間ビジネスインテリジェンスプラットフォームで、地理データの可視化と分析を行うことができます。本プロジェクトは、小規模な Raspberry Pi 環境での GeoSight の稼働を可能にし、エッジコンピューティングや教育環境での利用を促進します。
 
+## なぜこのプロジェクトが価値があるのか / Why This Project is Valuable
+
+### 🌍 地理空間技術の民主化 / Democratizing Geospatial Technology
+
+GeoSight は本来、強力なサーバーインフラを必要とする UNICEF の地理空間ビジネスインテリジェンスプラットフォームです。本プロジェクトは、わずか数千円の Raspberry Pi でこの先進的な技術を動かせるようにすることで、以下を実現します：
+
+- **教育機関での活用**: 限られた予算でも地理空間データ分析を学習・研究できる
+- **開発途上国での展開**: 高価なサーバーインフラなしで地域の地理情報システムを構築できる
+- **オフライン環境での利用**: インターネット接続が不安定な地域でも、ローカルで GeoSight を運用できる
+- **個人開発者の参入障壁低減**: 気軽に GeoSight を試し、カスタマイズ・開発できる
+
+### 🚀 エッジコンピューティングの実証 / Edge Computing Demonstration
+
+Raspberry Pi 上で GeoSight を動作させることは、エッジコンピューティングの可能性を示す重要な実証実験です：
+
+- **リソース制約下での最適化**: 限られた CPU・メモリでも動作する設定とノウハウを提供
+- **ARM アーキテクチャ対応**: クラウド中心の x86 から ARM への移行を実証
+- **省電力・小型化**: データセンター不要で、現地で完結するシステムの実現
+
+### 🛠️ セットアップの自動化 / Setup Automation
+
+GeoSight-OS の公式セットアップは複数のステップを手動で実行する必要があり、特に初心者には難易度が高いです。本プロジェクトは：
+
+- **ワンコマンドインストール**: `just doit` で完全に自動化されたセットアップ
+- **環境固有の最適化**: Raspberry Pi 特有の制約（I/O 速度、メモリ、ARM アーキテクチャ）に最適化
+- **セキュリティのベストプラクティス**: 自動生成されたシークレットキー、適切なパーミッション設定
+- **トラブルシューティング**: よくある問題と解決策を文書化
+
+### 🌐 UN Smart Maps コミュニティへの貢献 / Contributing to UN Smart Maps Community
+
+このプロジェクトは、UN Smart Maps の「オープンに技術をテストする」というミッションに沿っています：
+
+- **知識の共有**: [UNopenGIS/7#821](https://github.com/UNopenGIS/7/issues/821) で得られた知見を再利用可能な形で提供
+- **コミュニティの拡大**: より多くの人が GeoSight を試せるようにすることで、ユーザーベースと開発者コミュニティを拡大
+- **フィードバックループ**: Raspberry Pi でのユースケースから得られた知見を UNICEF の開発にフィードバック
+
+### 📚 実用的な価値 / Practical Value
+
+具体的なユースケース：
+
+1. **災害対応**: 現地に持ち込める小型デバイスで、オフラインで地理情報を管理・可視化
+2. **フィールドワーク**: 調査地域で即座にデータを収集・分析
+3. **教育ワークショップ**: 学生一人一台の環境で、実践的な地理空間データ分析を学習
+4. **開発・テスト環境**: 本番サーバーに影響を与えずに、新機能やカスタマイズを試行
+
 ## 対応環境 / Supported Environment
 
 - **OS**: Raspberry Pi OS trixie (Debian 13) 64-bit
@@ -153,6 +198,53 @@ just --set GEOSIGHT_REPO https://github.com/your-fork/GeoSight-OS.git install
 - **プラグイン**: 最小限（cloud_native_gis, reference_dataset）
 
 ## トラブルシューティング / Troubleshooting
+
+### Platform/Architecture エラー
+
+ARM64 (aarch64) と AMD64 (x86_64) のプラットフォーム不一致に関するエラーが表示される場合：
+
+```
+The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)
+```
+
+**原因**: Docker が正しいアーキテクチャのイメージを使用していない
+
+**解決策**:
+1. 本プロジェクトは自動的に `DOCKER_DEFAULT_PLATFORM` 環境変数を設定します
+2. 警告が表示されても、多くの場合は動作します（Docker が自動的にエミュレーションを使用）
+3. エラーが続く場合は、以下を確認：
+   ```bash
+   # アーキテクチャを確認
+   uname -m
+   
+   # Docker のマルチプラットフォームサポートを確認
+   docker buildx ls
+   ```
+
+### データベース接続エラー
+
+```
+could not translate host name "db" to address: Name or service not known
+```
+
+**原因**: データベースコンテナがまだ起動していない、またはネットワーク設定の問題
+
+**解決策**:
+1. 本プロジェクトは自動的にデータベースの準備完了を待機します（`pg_isready` を使用）
+2. 手動で確認する場合：
+   ```bash
+   # コンテナの状態を確認
+   just status
+   
+   # データベースログを確認
+   just logs | grep db
+   
+   # データベースの準備完了を確認
+   cd GeoSight-OS
+   docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.override.yml \
+       exec db pg_isready -U docker -d django
+   ```
+3. タイムアウトが足りない場合、Justfile の `MAX_ATTEMPTS` を増やすことができます
 
 ### Docker グループエラー
 
