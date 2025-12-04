@@ -37,6 +37,7 @@ perform_backup() {
 # Backup all databases in DBLIST
 IFS=',' read -ra DBS <<< "$DBLIST"
 for db in "${DBS[@]}"; do
+    db=$(echo "$db" | xargs)
     perform_backup "$db"
 done
 
