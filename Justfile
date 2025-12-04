@@ -372,6 +372,13 @@ stop: _check-geosight
     
     echo "🛑 Stopping GeoSight..."
     cd {{GEOSIGHT_DIR}}
+    
+    # On ARM64, use additional platform-specific override
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
+        export COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml"
+    fi
+    
     make down
     echo "✅ GeoSight stopped"
 
@@ -433,6 +440,13 @@ uninstall:
         
         # Stop and remove containers
         echo "🛑 Stopping and removing containers..."
+        
+        # On ARM64, use additional platform-specific override
+        ARCH=$(uname -m)
+        if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
+            export COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml"
+        fi
+        
         make down 2>/dev/null || true
         
         cd ..
