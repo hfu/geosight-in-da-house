@@ -5,7 +5,7 @@
 FROM postgres:13-alpine
 
 # Install necessary tools for backup operations
-# Note: postgresql tools, gzip, and crond are already included in the postgres base image
+# Note: postgresql tools, gzip, and crond (busybox) are already included in the postgres base image
 RUN apk add --no-cache \
     bash \
     && rm -rf /var/cache/apk/*
