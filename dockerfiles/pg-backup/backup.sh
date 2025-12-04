@@ -18,6 +18,7 @@ perform_backup() {
     
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting backup of database: ${dbname}"
     
+    set +e
     PGPASSWORD="${POSTGRES_PASS}" pg_dump \
         -h "${POSTGRES_HOST}" \
         -p "${POSTGRES_PORT}" \
@@ -25,8 +26,10 @@ perform_backup() {
         -d "${dbname}" \
         -Fc \
         -f "/backups/${filename}"
+    local exit_code=$?
+    set -e
     
-    if [ $? -eq 0 ]; then
+    if [ $exit_code -eq 0 ]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Backup completed: ${filename}"
     else
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Backup failed for database: ${dbname}"
