@@ -300,6 +300,9 @@ run: _check-docker _check-geosight
     echo ""
     
     # On ARM64, use additional platform-specific override
+    # Note: COMPOSE_FILE is a Docker Compose environment variable that specifies
+    # which compose files to use. It's respected by docker-compose commands called
+    # from the GeoSight-OS Makefile, which we cannot modify.
     ARCH=$(uname -m)
     if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
         echo "📋 Using ARM64 platform override for compatibility..."
@@ -316,6 +319,8 @@ run: _check-docker _check-geosight
     ATTEMPT=0
     
     # Build docker compose command with appropriate files
+    # Note: We use explicit -f flags here (not COMPOSE_FILE env var) because we're
+    # calling docker-compose directly and want to be explicit about file order
     COMPOSE_CMD="docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.override.yml"
     ARCH=$(uname -m)
     if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
