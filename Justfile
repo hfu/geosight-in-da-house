@@ -307,16 +307,22 @@ run: _check-docker _check-geosight
         
         # Build ARM64-specific images
         echo "📦 Building PostGIS image for ARM64..."
-        docker compose -f deployment/docker-compose.yml \
+        if ! docker compose -f deployment/docker-compose.yml \
             -f deployment/docker-compose.override.yml \
             -f deployment/docker-compose.override.arm64.yml \
-            build db
+            build db; then
+            echo "❌ Failed to build PostGIS image"
+            exit 1
+        fi
         
         echo "📦 Building pg-backup image for ARM64..."
-        docker compose -f deployment/docker-compose.yml \
+        if ! docker compose -f deployment/docker-compose.yml \
             -f deployment/docker-compose.override.yml \
             -f deployment/docker-compose.override.arm64.yml \
-            build dbbackups
+            build dbbackups; then
+            echo "❌ Failed to build pg-backup image"
+            exit 1
+        fi
         
         echo "✅ ARM64 images built successfully"
         echo ""

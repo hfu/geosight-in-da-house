@@ -33,3 +33,7 @@ EXPOSE 5432
 ENTRYPOINT ["/docker-entrypoint-wrapper.sh"]
 CMD ["postgres"]
 
+# Health check to verify PostgreSQL is ready
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD pg_isready -U docker -d django || exit 1
+
