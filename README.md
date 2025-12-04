@@ -205,6 +205,22 @@ just --set GEOSIGHT_REPO https://github.com/your-fork/GeoSight-OS.git install
 
 ## トラブルシューティング / Troubleshooting
 
+### "exec format error" エラー
+
+Docker ビルド時に以下のようなエラーが表示される場合：
+
+```
+exec /bin/sh: exec format error
+```
+
+**原因**: Docker がビルド時に間違ったアーキテクチャの base イメージを pull している
+
+**解決策**:
+1. 本プロジェクトは ARM64 アーキテクチャを自動検出し、適切な platform 設定を行います
+2. `just install` を実行すると、ARM64 対応の docker-compose オーバーライドファイルが自動生成されます
+3. docker-compose の `build.platforms` フィールドが `linux/arm64` に設定され、正しいアーキテクチャの base イメージが使用されます
+4. DOCKER_DEFAULT_PLATFORM 環境変数も自動的に設定されます
+
 ### Platform/Architecture エラー
 
 ARM64 (aarch64) と AMD64 (x86_64) のプラットフォーム不一致に関するエラーが表示される場合：
@@ -329,6 +345,12 @@ Raspberry Pi では Docker イメージのビルドに時間がかかります�
    - ARM64 専用のオーバーライドファイルで選択的にイメージをビルド
    - 既存の docker-compose.yml を変更せずに ARM64 対応を追加
    - `COMPOSE_FILE` 環境変数で複数のオーバーライドファイルを連結
+
+4. **"exec format error" の解決**:
+   - Docker ビルド時の "exec format error" は、間違ったアーキテクチャの base イメージが pull されることが原因
+   - docker-compose の `build.platforms` フィールドで明示的にプラットフォームを指定することで解決
+   - Dockerfile 内で `--platform` を hardcode するのはベストプラクティスではない（マルチプラットフォームビルドを妨げる）
+   - `DOCKER_DEFAULT_PLATFORM` 環境変数と組み合わせることで、確実に正しいアーキテクチャを使用
 
 ### Raspberry Pi 最適化
 
