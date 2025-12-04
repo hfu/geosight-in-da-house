@@ -222,7 +222,8 @@ The requested image's platform (linux/amd64) does not match the detected host pl
    - データベースサービスに明示的に `platform: linux/arm64` を指定
 2. これにより、`kartoza/postgis` などのイメージが ARM64 対応版を使用するか、必要に応じてエミュレーションで動作します
 3. `just install` を実行すると、ARM64 プラットフォームの検出と設定が自動的に行われます
-4. エラーが続く場合は、以下を確認：
+4. **既存インストールの場合**: GeoSight-OS が既にインストールされている場合は、`just install` を再実行して ARM64 オーバーライドファイルを作成してください
+5. エラーが続く場合は、以下を確認：
    ```bash
    # アーキテクチャを確認
    uname -m
