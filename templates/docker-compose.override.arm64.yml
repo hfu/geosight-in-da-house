@@ -9,8 +9,7 @@ services:
     build:
       context: ./dockerfiles/postgis
       dockerfile: Dockerfile
-      platforms:
-        - linux/arm64
+      platform: linux/arm64
     image: geosight-postgis:13-arm64
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
@@ -20,8 +19,7 @@ services:
     build:
       context: ./dockerfiles/pg-backup
       dockerfile: Dockerfile
-      platforms:
-        - linux/arm64
+      platform: linux/arm64
     image: geosight-pg-backup:13-arm64
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
