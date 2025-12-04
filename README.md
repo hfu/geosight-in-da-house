@@ -218,7 +218,7 @@ exec /bin/sh: exec format error
 **解決策**:
 1. 本プロジェクトは ARM64 アーキテクチャを自動検出し、適切な platform 設定を行います
 2. `just install` を実行すると、ARM64 対応の docker-compose オーバーライドファイルが自動生成されます
-3. docker-compose の `build.platforms` フィールドが `linux/arm64` に設定され、正しいアーキテクチャの base イメージが使用されます
+3. docker-compose の `build.platform` フィールドが `linux/arm64` に設定され、正しいアーキテクチャの base イメージが使用されます
 4. DOCKER_DEFAULT_PLATFORM 環境変数も自動的に設定されます
 
 ### Platform/Architecture エラー
@@ -348,7 +348,7 @@ Raspberry Pi では Docker イメージのビルドに時間がかかります�
 
 4. **"exec format error" の解決**:
    - Docker ビルド時の "exec format error" は、間違ったアーキテクチャの base イメージが pull されることが原因
-   - docker-compose の `build.platforms` フィールドで明示的にプラットフォームを指定することで解決
+   - docker-compose の `build.platform` フィールドで明示的にプラットフォームを指定することで解決
    - Dockerfile 内で `--platform` を hardcode するのはベストプラクティスではない（マルチプラットフォームビルドを妨げる）
    - `DOCKER_DEFAULT_PLATFORM` 環境変数と組み合わせることで、確実に正しいアーキテクチャを使用
 
