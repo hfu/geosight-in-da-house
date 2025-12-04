@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- ARM64-specific docker-compose override file (`docker-compose.override.arm64.yml`) for explicit platform specification
+- Automatic generation of ARM64 platform override during installation
+- Platform-aware docker-compose command construction for all operations (run, restart, status, logs)
+- Enhanced troubleshooting documentation for kartoza/postgis ARM64 compatibility
 - Automatic platform detection and configuration for Docker (ARM64/AMD64)
 - Robust database readiness check using `pg_isready` before initialization
 - Platform-specific troubleshooting guidance in README.md
@@ -46,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - .gitignore to exclude cloned GeoSight-OS directory and temporary files
 
 ### Changed
+- All docker-compose commands now use ARM64 override file when on ARM64 architecture
+- Platform detection now creates a dedicated override file instead of relying solely on environment variables
 - Replaced simple 60-second sleep with intelligent database health check
 - Database initialization now waits up to 5 minutes with proper health verification
 - `DOCKER_DEFAULT_PLATFORM` environment variable automatically set based on architecture
@@ -57,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AGPL copyleft does not apply as GeoSight-OS is not modified or redistributed
 
 ### Fixed
+- **Critical**: Fixed `kartoza/postgis:13.0` platform mismatch error on ARM64 by creating explicit docker-compose platform override
 - **Critical**: Fixed platform mismatch error on ARM64 systems by setting `DOCKER_DEFAULT_PLATFORM`
 - **Critical**: Fixed "could not translate host name 'db'" error by implementing proper database readiness checks
 - Improved container startup reliability by waiting for actual service readiness instead of fixed timeouts
