@@ -213,7 +213,7 @@ Docker ビルド時に以下のようなエラーが表示される場合：
 exec /bin/sh: exec format error
 ```
 
-**原因**: Docker がビルド時に間違ったアーキテクチャの base イメージを pull している
+**原因**: Docker がビルド時に間違ったアーキテクチャの base イメージをプルしている
 
 **解決策**:
 1. 本プロジェクトは ARM64 アーキテクチャを自動検出し、適切な platform 設定を行います
@@ -347,9 +347,9 @@ Raspberry Pi では Docker イメージのビルドに時間がかかります�
    - `COMPOSE_FILE` 環境変数で複数のオーバーライドファイルを連結
 
 4. **"exec format error" の解決**:
-   - Docker ビルド時の "exec format error" は、間違ったアーキテクチャの base イメージが pull されることが原因
+   - Docker ビルド時の "exec format error" は、間違ったアーキテクチャの base イメージがプルされることが原因
    - docker-compose の `build.platform` フィールドで明示的にプラットフォームを指定することで解決
-   - Dockerfile 内で `--platform` を hardcode するのはベストプラクティスではない（マルチプラットフォームビルドを妨げる）
+   - Dockerfile 内で `--platform` をハードコードするのはベストプラクティスではない（マルチプラットフォームビルドを妨げる）
    - `DOCKER_DEFAULT_PLATFORM` 環境変数と組み合わせることで、確実に正しいアーキテクチャを使用
 
 ### Raspberry Pi 最適化
