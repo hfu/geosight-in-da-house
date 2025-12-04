@@ -327,11 +327,9 @@ run: _check-docker _check-geosight
         echo "✅ ARM64 images built successfully"
         echo ""
         
-        # Set COMPOSE_FILE for subsequent commands
-        echo "📋 Using ARM64 platform override for compatibility..."
-        export COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml"
-        
         # Run development mode with ARM64 override
+        # Note: COMPOSE_FILE is passed inline to make command
+        echo "📋 Using ARM64 platform override for compatibility..."
         echo "🚀 Starting Docker containers..."
         echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
         echo ""

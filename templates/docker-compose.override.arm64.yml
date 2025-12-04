@@ -21,4 +21,3 @@ services:
     image: geosight-pg-backup:13-arm64
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
-

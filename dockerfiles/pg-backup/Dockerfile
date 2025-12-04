@@ -59,8 +59,9 @@ for db in "${DBS[@]}"; do
     perform_backup "$db"
 done
 
-# Clean up old backups (keep last 30 days)
-find /backups -name "${DUMPPREFIX}_*.dump" -mtime +30 -delete 2>/dev/null || true
+# Clean up old backups (configurable retention period, default: 30 days)
+BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
+find /backups -name "${DUMPPREFIX}_*.dump" -mtime +${BACKUP_RETENTION_DAYS} -delete 2>/dev/null || true
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Backup process completed"
 EOF
@@ -89,7 +90,7 @@ echo "${BACKUP_CRON_SCHEDULE} /backup.sh >> /var/log/backup.log 2>&1" > /etc/cro
 
 # Wait for database to be ready before performing initial backup
 echo "Waiting for database to be ready..."
-MAX_ATTEMPTS=60
+MAX_ATTEMPTS=24  # 2 minutes total (24 × 5 seconds)
 ATTEMPT=0
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
     ATTEMPT=$((ATTEMPT + 1))
