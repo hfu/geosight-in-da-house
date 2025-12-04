@@ -130,6 +130,7 @@ just install
 3. 現在のユーザーを docker グループに追加
 4. GeoSight-OS リポジトリのクローン
 5. Raspberry Pi 用に最適化された設定ファイルの生成
+6. **ARM64 の場合**: PostGIS と pg-backup 用のカスタム Dockerfile を自動コピー
 
 ### 起動
 
@@ -138,11 +139,16 @@ just run
 ```
 
 このコマンドは以下を実行します：
-1. Docker コンテナの起動
-2. GeoSight の初期化
-3. デモデータのロード
+1. **ARM64 の場合**: PostGIS と pg-backup を Dockerfile からビルド（初回のみ 15-30 分）
+2. Docker コンテナの起動
+3. GeoSight の初期化
+4. デモデータのロード
 
-起動には Raspberry Pi 4B で 10-15 分程度かかる場合があります。
+起動には Raspberry Pi 4B で以下の時間がかかります：
+- 初回起動（ビルドあり）: 30-60 分
+- 2 回目以降: 10-15 分
+
+**重要**: ARM64 アーキテクチャ (Raspberry Pi) では、`kartoza/postgis:13.0` などの Docker イメージに ARM64 対応版が存在しないため、初回起動時に自動的に Dockerfile からビルドします。これには時間がかかりますが、2 回目以降はキャッシュされたイメージを使用するため高速です。
 
 ### Cloudflare Tunnel による公開
 
@@ -213,27 +219,29 @@ Error response from daemon: image with reference kartoza/postgis:13.0 was found 
 The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)
 ```
 
-**原因**: Docker が正しいアーキテクチャのイメージを使用していない
+**原因**: `kartoza/postgis:13.0` などの一部のイメージに ARM64 対応版が存在しない
 
 **解決策**:
 1. 本プロジェクトは ARM64 アーキテクチャを自動検出し、以下の対策を実施します：
-   - `DOCKER_DEFAULT_PLATFORM` 環境変数を設定
+   - ARM64 非対応イメージ用のカスタム Dockerfile を自動コピー
    - ARM64 用の docker-compose オーバーライドファイル (`docker-compose.override.arm64.yml`) を自動生成
-   - データベースサービスに明示的に `platform: linux/arm64` を指定
-2. これにより、`kartoza/postgis` などのイメージが ARM64 対応版を使用するか、必要に応じてエミュレーションで動作します
+   - `just run` 実行時に ARM64 対応イメージを Dockerfile からビルド
+2. **初回ビルド時間**: PostGIS と pg-backup のビルドに Raspberry Pi で 15-30 分程度かかります。2 回目以降はキャッシュされたイメージを使用するため高速です。
 3. `just install` を実行すると、ARM64 プラットフォームの検出と設定が自動的に行われます
-4. **既存インストールの場合**: GeoSight-OS が既にインストールされている場合は、`just install` を再実行して ARM64 オーバーライドファイルを作成してください
-5. エラーが続く場合は、以下を確認：
+4. **既存インストールの場合**: GeoSight-OS が既にインストールされている場合は、`just install` を再実行して ARM64 対応ファイルを作成してください
+5. ビルドが完了しているか確認：
    ```bash
    # アーキテクチャを確認
    uname -m
    
-   # Docker のマルチプラットフォームサポートを確認
-   docker buildx ls
+   # ARM64 用イメージがビルドされているか確認
+   docker images | grep geosight
    
    # ARM64 オーバーライドファイルが作成されているか確認
    ls -la GeoSight-OS/deployment/docker-compose.override.arm64.yml
+   ls -la GeoSight-OS/deployment/dockerfiles/
    ```
+
 
 ### データベース接続エラー
 
@@ -300,6 +308,56 @@ Raspberry Pi では Docker イメージのビルドに時間がかかります�
 ### Cloudflare Tunnel の注意
 
 `just tunnel` で作成されるトンネルは一時的なもので、認証なしでアクセス可能です。長期運用や本番環境では、Cloudflare Zero Trust を使用してアクセス制御を設定してください。
+
+## 開発の教訓 / Lessons Learned
+
+このプロジェクトの開発で得られた重要な知見：
+
+### ARM64 アーキテクチャ対応
+
+1. **Docker イメージの互換性**:
+   - すべての Docker イメージに ARM64 対応版があるわけではない
+   - `kartoza/postgis:13.0` と `kartoza/pg-backup:13.0` は AMD64 のみ
+   - エミュレーションは Raspberry Pi のような限られたリソースでは現実的でない
+
+2. **Dockerfile からのビルド戦略**:
+   - 公式の ARM64 対応ベースイメージ（`postgis/postgis:13-3.4-alpine`）を使用
+   - 環境変数の互換性レイヤーを追加（`POSTGRES_PASS` → `POSTGRES_PASSWORD` など）
+   - 初回ビルドに時間がかかるが、キャッシュにより 2 回目以降は高速化
+
+3. **docker-compose のオーバーライド**:
+   - ARM64 専用のオーバーライドファイルで選択的にイメージをビルド
+   - 既存の docker-compose.yml を変更せずに ARM64 対応を追加
+   - `COMPOSE_FILE` 環境変数で複数のオーバーライドファイルを連結
+
+### Raspberry Pi 最適化
+
+1. **リソース制約への対応**:
+   - Docker タイムアウトを 300 秒に延長（デフォルトは 60 秒）
+   - ログローテーションを 7 日、50MB に削減
+   - 最小限のプラグイン構成（cloud_native_gis, reference_dataset のみ）
+
+2. **ビルド時間の考慮**:
+   - 初回ビルド: 30-60 分（PostGIS、pg-backup、Django、nginx）
+   - 2 回目以降: 10-15 分（キャッシュ利用）
+   - ユーザーへの明確な時間の期待値設定が重要
+
+3. **VSCode の扱い**:
+   - GeoSight-OS の setup.sh は VSCode を推奨するが、Raspberry Pi では不要
+   - webpack は開発に必要なため残す
+   - リソースを節約するため、必須でない機能は積極的に削除
+
+### セキュリティとベストプラクティス
+
+1. **自動生成されたシークレット**:
+   - SECRET_KEY, DATABASE_PASSWORD, REDIS_PASSWORD を OpenSSL で生成
+   - 十分なエントロピーを確保（50 文字、16 文字）
+   - デフォルトパスワード（admin/admin）の変更を強く促す
+
+2. **ドキュメントの重要性**:
+   - プラットフォーム固有の問題（ARM64）を明確に文書化
+   - トラブルシューティングセクションに具体的な解決策を記載
+   - 初回実行時の期待値（時間、リソース）を明示
 
 ## 出典・参考資料 / References
 

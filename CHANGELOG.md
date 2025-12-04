@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ARM64 Build System**: Custom Dockerfiles for ARM64-incompatible images
+  - `dockerfiles/postgis/Dockerfile`: ARM64-compatible PostGIS based on official postgis/postgis:13-3.4-alpine
+  - `dockerfiles/pg-backup/Dockerfile`: ARM64-compatible PostgreSQL backup service
+  - Template docker-compose override file for ARM64 builds
+  - Automatic copying of ARM64 Dockerfiles during installation
+  - Automatic building of ARM64 images before first run
+- **Build Automation**: 
+  - Automatic detection of ARM64 architecture and build trigger
+  - Progress messages for long-running ARM64 builds (15-30 minutes on Raspberry Pi)
+  - Docker image caching for subsequent runs (reduces startup to 10-15 minutes)
+- **Documentation Updates**:
+  - Updated troubleshooting section with Dockerfile-based build approach
+  - Added timing information for initial ARM64 builds
+  - Clarified that emulation is avoided in favor of native ARM64 builds
 - ARM64-specific docker-compose override file (`docker-compose.override.arm64.yml`) for explicit platform specification
 - Automatic generation of ARM64 platform override during installation
 - Platform-aware docker-compose command construction for all operations (run, restart, status, logs)
@@ -24,8 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial Justfile-based automation for GeoSight deployment on Raspberry Pi OS trixie 64-bit
 - Comprehensive bilingual (English/Japanese) README.md documentation
 - 12 Justfile tasks for complete lifecycle management:
-  - `install`: Install dependencies, clone GeoSight-OS, create optimized configuration
-  - `run`: Start GeoSight in development mode with Raspberry Pi optimizations
+  - `install`: Install dependencies, clone GeoSight-OS, create optimized configuration, copy ARM64 Dockerfiles
+  - `run`: Build ARM64 images (if needed), start GeoSight in development mode with Raspberry Pi optimizations
   - `stop`: Stop GeoSight containers
   - `restart`: Restart GeoSight services
   - `uninstall`: Remove GeoSight installation completely
@@ -50,6 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - .gitignore to exclude cloned GeoSight-OS directory and temporary files
 
 ### Changed
+- **ARM64 Strategy**: Changed from platform override/emulation to native Dockerfile builds
+  - Replaces `kartoza/postgis:13.0` with custom build based on `postgis/postgis:13-3.4-alpine`
+  - Replaces `kartoza/pg-backup:13.0` with custom Alpine-based backup service
+  - Ensures native ARM64 execution without emulation overhead
 - All docker-compose commands now use ARM64 override file when on ARM64 architecture
 - Platform detection now creates a dedicated override file instead of relying solely on environment variables
 - Replaced simple 60-second sleep with intelligent database health check
@@ -63,7 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AGPL copyleft does not apply as GeoSight-OS is not modified or redistributed
 
 ### Fixed
-- **Critical**: Fixed `kartoza/postgis:13.0` platform mismatch error on ARM64 by creating explicit docker-compose platform override
+- **Critical**: Fixed `kartoza/postgis:13.0` platform mismatch error on ARM64 by building from ARM64-compatible Dockerfile
+- **Critical**: Fixed `kartoza/pg-backup:13.0` unavailability on ARM64 by building from custom Dockerfile
+- **Critical**: Eliminated emulation overhead by using native ARM64 builds instead of platform override
 - **Critical**: Fixed platform mismatch error on ARM64 systems by setting `DOCKER_DEFAULT_PLATFORM`
 - **Critical**: Fixed "could not translate host name 'db'" error by implementing proper database readiness checks
 - Improved container startup reliability by waiting for actual service readiness instead of fixed timeouts
