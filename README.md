@@ -204,21 +204,35 @@ just --set GEOSIGHT_REPO https://github.com/your-fork/GeoSight-OS.git install
 ARM64 (aarch64) と AMD64 (x86_64) のプラットフォーム不一致に関するエラーが表示される場合：
 
 ```
+Error response from daemon: image with reference kartoza/postgis:13.0 was found but does not match the specified platform: wanted linux/arm64, actual: linux/amd64
+```
+
+または
+
+```
 The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)
 ```
 
 **原因**: Docker が正しいアーキテクチャのイメージを使用していない
 
 **解決策**:
-1. 本プロジェクトは自動的に `DOCKER_DEFAULT_PLATFORM` 環境変数を設定します
-2. 警告が表示されても、多くの場合は動作します（Docker が自動的にエミュレーションを使用）
-3. エラーが続く場合は、以下を確認：
+1. 本プロジェクトは ARM64 アーキテクチャを自動検出し、以下の対策を実施します：
+   - `DOCKER_DEFAULT_PLATFORM` 環境変数を設定
+   - ARM64 用の docker-compose オーバーライドファイル (`docker-compose.override.arm64.yml`) を自動生成
+   - データベースサービスに明示的に `platform: linux/arm64` を指定
+2. これにより、`kartoza/postgis` などのイメージが ARM64 対応版を使用するか、必要に応じてエミュレーションで動作します
+3. `just install` を実行すると、ARM64 プラットフォームの検出と設定が自動的に行われます
+4. **既存インストールの場合**: GeoSight-OS が既にインストールされている場合は、`just install` を再実行して ARM64 オーバーライドファイルを作成してください
+5. エラーが続く場合は、以下を確認：
    ```bash
    # アーキテクチャを確認
    uname -m
    
    # Docker のマルチプラットフォームサポートを確認
    docker buildx ls
+   
+   # ARM64 オーバーライドファイルが作成されているか確認
+   ls -la GeoSight-OS/deployment/docker-compose.override.arm64.yml
    ```
 
 ### データベース接続エラー
