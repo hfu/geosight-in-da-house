@@ -7,7 +7,7 @@ services:
   # Replace kartoza/postgis:13.0 with ARM64-compatible build
   db:
     build:
-      context: ../../dockerfiles/postgis
+      context: ./dockerfiles/postgis
       dockerfile: Dockerfile
     image: geosight-postgis:13-arm64
     platform: linux/arm64
@@ -16,8 +16,9 @@ services:
   # Replace kartoza/pg-backup:13.0 with ARM64-compatible build  
   dbbackups:
     build:
-      context: ../../dockerfiles/pg-backup
+      context: ./dockerfiles/pg-backup
       dockerfile: Dockerfile
     image: geosight-pg-backup:13-arm64
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
+

@@ -33,7 +33,7 @@ DBLIST=${DBLIST:-$POSTGRES_DBNAME}
 perform_backup() {
     local dbname=$1
     local timestamp=$(date +%Y%m%d_%H%M%S)
-    local filename="${DUMPPREFIX}_${dbname}_${timestamp}.sql.gz"
+    local filename="${DUMPPREFIX}_${dbname}_${timestamp}.dump"
     
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting backup of database: ${dbname}"
     
@@ -43,7 +43,7 @@ perform_backup() {
         -U "${POSTGRES_USER}" \
         -d "${dbname}" \
         -Fc \
-        | gzip > "/backups/${filename}"
+        -f "/backups/${filename}"
     
     if [ $? -eq 0 ]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Backup completed: ${filename}"
@@ -60,7 +60,7 @@ for db in "${DBS[@]}"; do
 done
 
 # Clean up old backups (keep last 30 days)
-find /backups -name "${DUMPPREFIX}_*.sql.gz" -mtime +30 -delete 2>/dev/null || true
+find /backups -name "${DUMPPREFIX}_*.dump" -mtime +30 -delete 2>/dev/null || true
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Backup process completed"
 EOF
