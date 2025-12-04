@@ -34,6 +34,7 @@ ENTRYPOINT ["/docker-entrypoint-wrapper.sh"]
 CMD ["postgres"]
 
 # Health check to verify PostgreSQL is ready
+# Note: pg_isready doesn't require -U and -d flags to test basic connectivity
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
-    CMD pg_isready -U docker -d django || exit 1
+    CMD pg_isready -h localhost || exit 1
 

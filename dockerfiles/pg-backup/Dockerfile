@@ -67,22 +67,25 @@ EOF
 
 RUN chmod +x /backup.sh
 
-# Create cron job for daily backups at 2 AM
-RUN echo "0 2 * * * /backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
-
 # Create entrypoint script
 RUN cat > /docker-entrypoint.sh << 'EOF'
 #!/bin/bash
 set -e
 
+# Set backup schedule from environment variable (default: daily at 2 AM)
+BACKUP_CRON_SCHEDULE="${BACKUP_CRON_SCHEDULE:-0 2 * * *}"
+
 echo "Starting PostgreSQL backup service..."
-echo "Backup will run daily at 2 AM"
+echo "Backup schedule: ${BACKUP_CRON_SCHEDULE}"
 echo "Database: ${POSTGRES_DBNAME:-django}"
 echo "Host: ${POSTGRES_HOST:-db}"
 echo "User: ${POSTGRES_USER:-docker}"
 
 # Create log file
 touch /var/log/backup.log
+
+# Setup cron job with configurable schedule
+echo "${BACKUP_CRON_SCHEDULE} /backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
 
 # Wait for database to be ready before performing initial backup
 echo "Waiting for database to be ready..."

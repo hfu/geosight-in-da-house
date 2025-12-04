@@ -330,14 +330,21 @@ run: _check-docker _check-geosight
         # Set COMPOSE_FILE for subsequent commands
         echo "📋 Using ARM64 platform override for compatibility..."
         export COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml"
+        
+        # Run development mode with ARM64 override
+        echo "🚀 Starting Docker containers..."
+        echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
+        echo ""
+        
+        COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml" make dev
+    else
+        # Run development mode without ARM64 override
+        echo "🚀 Starting Docker containers..."
+        echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
+        echo ""
+        
+        make dev
     fi
-    
-    # Run development mode
-    echo "🚀 Starting Docker containers..."
-    echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
-    echo ""
-    
-    make dev
     
     echo ""
     echo "⏳ Waiting for database to be ready..."
