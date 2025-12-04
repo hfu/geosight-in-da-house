@@ -5,25 +5,13 @@
 FROM postgis/postgis:13-3.4-alpine
 
 # Install necessary tools for compatibility
+# Note: postgresql tools are already included in the postgis base image
 RUN apk add --no-cache \
     bash \
-    postgresql-client \
     && rm -rf /var/cache/apk/*
 
-# Create wrapper entrypoint to handle kartoza environment variables
-RUN cat > /docker-entrypoint-wrapper.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# Map kartoza/postgis environment variables to standard PostgreSQL variables
-export POSTGRES_PASSWORD="${POSTGRES_PASS:-${POSTGRES_PASSWORD:-docker}}"
-export POSTGRES_USER="${POSTGRES_USER:-docker}"
-export POSTGRES_DB="${POSTGRES_DBNAME:-${POSTGRES_DB:-django}}"
-
-# Call the original entrypoint
-exec /usr/local/bin/docker-entrypoint.sh "$@"
-EOF
-
+# Copy wrapper entrypoint to handle kartoza environment variables
+COPY docker-entrypoint-wrapper.sh /docker-entrypoint-wrapper.sh
 RUN chmod +x /docker-entrypoint-wrapper.sh
 
 # Expose PostgreSQL port
