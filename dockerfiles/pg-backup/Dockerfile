@@ -2,7 +2,7 @@
 # Based on Alpine Linux which supports ARM64
 # This replaces kartoza/pg-backup:13.0 which is AMD64-only
 
-FROM --platform=linux/arm64 postgres:13-alpine
+FROM postgres:13-alpine
 
 # Install necessary tools for backup operations
 # Note: postgresql tools, gzip, and crond (via BusyBox) are already included in the postgres base image
