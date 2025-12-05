@@ -509,6 +509,7 @@ run: _check-docker _check-geosight
     
     # Initialize the application
     echo "🔧 Initializing GeoSight database and settings..."
+    bash ../scripts/cleanup_init.sh "$COMPOSE_CMD" || true
     if ! make dev-initialize; then
         echo "⚠️ dev-initialize failed; entering troubleshooting cleanup"
         if ! AUTO_FIX=true just init-troubleshoot; then
