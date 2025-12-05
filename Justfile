@@ -795,3 +795,88 @@ info:
     else
         echo "GeoSight-OS: Not installed"
     fi
+
+# Troubleshoot DB initialization / migration issues
+init-troubleshoot: _check-docker _check-geosight
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "======================================"
+    echo "  GeoSight Initialization Troubleshoot"
+    echo "======================================"
+    echo ""
+
+    cd {{GEOSIGHT_DIR}}
+
+    # Build docker-compose command with appropriate files
+    COMPOSE_CMD="docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.override.yml"
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
+        COMPOSE_CMD="$COMPOSE_CMD -f deployment/docker-compose.override.arm64.yml"
+    fi
+
+    # 1) Backup DB to host
+    BACKUP_FILE="/tmp/geosight_db_backup_$(date +%s).sql"
+    echo "📦 Creating DB backup to: $BACKUP_FILE"
+    $COMPOSE_CMD exec -T db pg_dump -U docker -d django > "$BACKUP_FILE" || {
+        echo "⚠️  Failed to create DB dump via compose exec. Trying docker exec for container..."
+        CONTAINER=$(docker ps --filter "name=geosight_db" --format "{{.Names}}" | head -1)
+        if [ -n "$CONTAINER" ]; then
+            docker exec -i "$CONTAINER" pg_dump -U docker -d django > "$BACKUP_FILE"
+        else
+            echo "❌ Could not find db container to dump. Aborting."
+            exit 1
+        fi
+    }
+    echo "✅ Backup saved: $BACKUP_FILE"
+    echo ""
+
+    # 2) List sequences that likely conflict (sequences without matching table)
+    echo "🔎 Checking for orphaned GeoSight sequences (sequences without matching table)..."
+    SQL="SELECT c.relname FROM pg_class c WHERE c.relkind='S' AND c.relname ILIKE 'geosight_%' AND NOT EXISTS (SELECT 1 FROM pg_class t WHERE t.relname = substring(c.relname from '^(.*)_id_seq$') AND t.relkind='r');"
+    ORPHANED=$($COMPOSE_CMD exec -T db psql -U docker -d django -t -A -c "$SQL" || true)
+
+    if [ -z "$(echo "$ORPHANED" | tr -d '[:space:]')" ]; then
+        echo "✅ No orphaned sequences found."
+    else
+        echo "⚠️  Found orphaned sequences:" 
+        echo "$ORPHANED" | sed 's/^/  - /'
+        echo ""
+        if [[ "${AUTO_FIX:-false}" == "true" ]]; then
+            CONFIRM="y"
+        else
+            read -p "Drop these sequences now? This is destructive but reversible from the SQL backup. [y/N] " -n 1 -r
+            echo
+            CONFIRM=$REPLY
+        fi
+
+        if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
+            echo "🧹 Dropping orphaned sequences..."
+            echo "$ORPHANED" | while read -r seq; do
+                seq_trim=$(echo "$seq" | tr -d '\r')
+                if [ -n "$seq_trim" ]; then
+                    echo "Dropping sequence: $seq_trim"
+                    $COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SEQUENCE IF EXISTS \"$seq_trim\" CASCADE;" || true
+                fi
+            done
+            echo "✅ Dropped orphaned sequences"
+        else
+            echo "⚠️  No changes made. Aborting troubleshooting."
+            exit 0
+        fi
+    fi
+
+    # 3) Re-run initialization/migrations
+    echo ""
+    echo "▶️  Re-running initialization (make dev-initialize)..."
+    cd {{GEOSIGHT_DIR}}
+    make dev-initialize || {
+        echo "❌ dev-initialize failed. Check logs above for details."
+        exit 1
+    }
+
+    echo ""
+    echo "======================================"
+    echo "  Troubleshoot complete - check logs" 
+    echo "======================================"
+
