@@ -340,6 +340,15 @@ run: _check-docker _check-geosight
     # Set Docker timeouts for Raspberry Pi (slower I/O)
     export COMPOSE_HTTP_TIMEOUT={{COMPOSE_HTTP_TIMEOUT}}
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
+
+    sanitize_compose() {
+        for f in deployment/docker-compose.yml deployment/docker-compose.override.yml deployment/docker-compose.override.arm64.yml; do
+            if [ -f "$f" ]; then
+                tmpfile=$(mktemp)
+                awk '!/^[[:space:]]*version:/' "$f" > "$tmpfile" && mv "$tmpfile" "$f" || true
+            fi
+        done
+    }
     
     # Detect platform for Docker
     set_docker_platform
