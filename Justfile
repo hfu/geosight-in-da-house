@@ -841,7 +841,7 @@ init-troubleshoot: _check-docker _check-geosight
     echo "📦 Creating DB backup to: $BACKUP_FILE"
     $COMPOSE_CMD exec -T db pg_dump -U docker -d django > "$BACKUP_FILE" || {
         echo "⚠️  Failed to create DB dump via compose exec. Trying docker exec for container..."
-        CONTAINER=$(docker ps --filter "name=geosight_db" --format "{{.Names}}" | head -1)
+        CONTAINER=$(docker ps --filter "name=geosight_db" -q | head -1)
         if [ -n "$CONTAINER" ]; then
             docker exec -i "$CONTAINER" pg_dump -U docker -d django > "$BACKUP_FILE"
         else
