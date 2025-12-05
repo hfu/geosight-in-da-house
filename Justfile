@@ -530,6 +530,19 @@ run: _check-docker _check-geosight
     echo "  just tunnel   - Expose to internet via Cloudflare"
     echo ""
 
+dev-initialize: _check-docker _check-geosight
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd {{GEOSIGHT_DIR}}
+    export COMPOSE_HTTP_TIMEOUT={{COMPOSE_HTTP_TIMEOUT}}
+    export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
+    echo "======================================"
+    echo "  Running GeoSight dev-initialize"
+    echo "======================================"
+    echo ""
+    make dev-initialize
+
 # Stop GeoSight
 stop: _check-geosight
     #!/usr/bin/env bash
