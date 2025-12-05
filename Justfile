@@ -864,23 +864,6 @@ info:
         echo "GeoSight-OS: Not installed"
     fi
 
-cleanup_partial_initialization() {
-    local compose_cmd="$1"
-    echo "🔧 Cleaning up partially applied GeoSight migrations..."
-    # Run each cleanup statement separately to avoid complex Bash constructs in Just
-    $compose_cmd exec -T db psql -U docker -d django -c "SET search_path TO public" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP TABLE IF EXISTS geosight_data_indicatorrule CASCADE" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP TABLE IF EXISTS geosight_data_dashboardbookmark CASCADE" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP TABLE IF EXISTS geosight_data_dashboardbookmark_id_seq" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_data CASCADE" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_permission CASCADE" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_reference_dataset CASCADE" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_importer CASCADE" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_log CASCADE" || true
-    $compose_cmd exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_georepo CASCADE" || true
-    echo "✅ Removed leftover tables/schemas"
-}
-
 # Troubleshoot DB initialization / migration issues
 init-troubleshoot: _check-docker _check-geosight
     #!/usr/bin/env bash
@@ -954,7 +937,22 @@ init-troubleshoot: _check-docker _check-geosight
     # 3) Re-run initialization/migrations
     echo ""
     echo "▶️  Re-running initialization (make dev-initialize)..."
-    cleanup_partial_initialization "$COMPOSE_CMD" || true
+    echo "🔧 Cleaning up partially applied GeoSight migrations..."
+    bash - <<BASH
+set -euo pipefail
+COMPOSE_CMD="$COMPOSE_CMD"
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "SET search_path TO public" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP TABLE IF EXISTS geosight_data_indicatorrule CASCADE" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP TABLE IF EXISTS geosight_data_dashboardbookmark CASCADE" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP TABLE IF EXISTS geosight_data_dashboardbookmark_id_seq" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_data CASCADE" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_permission CASCADE" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_reference_dataset CASCADE" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_importer CASCADE" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_log CASCADE" || true
+$COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SCHEMA IF EXISTS geosight_georepo CASCADE" || true
+BASH
+    echo "✅ Removed leftover tables/schemas"
     make dev-initialize || {
         echo "❌ dev-initialize failed. Check logs above for details."
         exit 1
