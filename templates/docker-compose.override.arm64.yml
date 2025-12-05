@@ -1,7 +1,6 @@
 # ARM64-specific Docker Compose override
 # This file is automatically used when running on ARM64 architecture (Raspberry Pi)
 # It replaces AMD64-only images with ARM64-compatible builds
-version: '3.9'
 
 services:
   # Replace kartoza/postgis:13.0 with ARM64-compatible build
@@ -9,7 +8,6 @@ services:
     build:
       context: ./dockerfiles/postgis
       dockerfile: Dockerfile
-      platform: linux/arm64
     image: geosight-postgis:13-arm64
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
@@ -19,7 +17,6 @@ services:
     build:
       context: ./dockerfiles/pg-backup
       dockerfile: Dockerfile
-      platform: linux/arm64
     image: geosight-pg-backup:13-arm64
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
