@@ -890,7 +890,6 @@ init-troubleshoot: _check-docker _check-geosight
     # 3) Re-run initialization/migrations
     echo ""
     echo "▶️  Re-running initialization (make dev-initialize)..."
-    cd {{GEOSIGHT_DIR}}
     make dev-initialize || {
         echo "❌ dev-initialize failed. Check logs above for details."
         exit 1
