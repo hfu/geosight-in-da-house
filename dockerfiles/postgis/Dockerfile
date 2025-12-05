@@ -2,7 +2,7 @@
 # Based on official postgis/postgis image which supports ARM64
 # This replaces kartoza/postgis:13.0 which is AMD64-only
 
-FROM postgis/postgis:13-3.4-alpine
+FROM --platform=linux/arm64 postgis/postgis:13-3.4-alpine
 
 # Install necessary tools for compatibility
 # Note: postgresql tools are already included in the postgis base image
