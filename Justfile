@@ -263,6 +263,20 @@ install:
     [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]] && PLATFORM="linux/arm64"
     docker pull --platform=$PLATFORM ubuntu:22.04
     
+    # Aggressive database cleanup to ensure fresh start
+    echo ""
+    echo "🧹 Cleaning up any existing database data..."
+    if [ -d "{{GEOSIGHT_DIR}}/deployment/volumes" ]; then
+        echo "   Removing deployment/volumes directory..."
+        sudo rm -rf {{GEOSIGHT_DIR}}/deployment/volumes || true
+    fi
+    
+    # Remove any existing Docker volumes
+    echo "   Removing Docker volumes..."
+    docker volume ls -q | grep '^geosight_' | xargs -r docker volume rm 2>/dev/null || true
+    
+    echo "✅ Database cleanup complete"
+    
     echo ""
     echo "======================================"
     echo "  ✅ Installation complete!"
@@ -509,19 +523,7 @@ run: _check-docker _check-geosight
     
     # Initialize the application
     echo "🔧 Initializing GeoSight database and settings..."
-    bash ../scripts/cleanup_init.sh "$COMPOSE_CMD" || true
-    if ! make dev-initialize; then
-        echo "⚠️ dev-initialize failed; entering troubleshooting cleanup"
-        if ! AUTO_FIX=true just init-troubleshoot; then
-            echo "❌ init-troubleshoot failed. Check logs above."
-            exit 1
-        fi
-        echo "▶️  Re-running dev-initialize after troubleshooting..."
-        if ! make dev-initialize; then
-            echo "❌ dev-initialize still failing after cleanup. Stop and inspect logs."
-            exit 1
-        fi
-    fi
+    make dev-initialize
     
     # Load demo data
     echo "📊 Loading demo data..."
@@ -541,19 +543,6 @@ run: _check-docker _check-geosight
     echo "  just logs     - View logs"
     echo "  just tunnel   - Expose to internet via Cloudflare"
     echo ""
-
-dev-initialize: _check-docker _check-geosight
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    cd {{GEOSIGHT_DIR}}
-    export COMPOSE_HTTP_TIMEOUT={{COMPOSE_HTTP_TIMEOUT}}
-    export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
-    echo "======================================"
-    echo "  Running GeoSight dev-initialize"
-    echo "======================================"
-    echo ""
-    make dev-initialize
 
 # Stop GeoSight
 stop: _check-geosight
@@ -864,96 +853,4 @@ info:
     else
         echo "GeoSight-OS: Not installed"
     fi
-
-# Troubleshoot DB initialization / migration issues
-init-troubleshoot: _check-docker _check-geosight
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    echo "======================================"
-    echo "  GeoSight Initialization Troubleshoot"
-    echo "======================================"
-    echo ""
-
-    cd {{GEOSIGHT_DIR}}
-
-    # Build docker-compose command with appropriate files
-    COMPOSE_CMD="docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.override.yml"
-    ARCH=$(uname -m)
-    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
-        COMPOSE_CMD="$COMPOSE_CMD -f deployment/docker-compose.override.arm64.yml"
-    fi
-
-    # 1) Backup DB to host
-    BACKUP_FILE="/tmp/geosight_db_backup_$(date +%s).sql"
-    echo "📦 Creating DB backup to: $BACKUP_FILE"
-    BACKUP_OK=true
-    if ! $COMPOSE_CMD exec -T db pg_dump -U docker -d django > "$BACKUP_FILE"; then
-        echo "⚠️  Failed to create DB dump via compose exec (continuing without backup)..."
-        CONTAINER=$(docker ps --filter "name=geosight_db" -q | head -1)
-        if [ -n "$CONTAINER" ]; then
-            if ! docker exec -i "$CONTAINER" pg_dump -U docker -d django > "$BACKUP_FILE"; then
-                echo "⚠️  Docker exec pg_dump also failed (table/layout mismatch)."
-                BACKUP_OK=false
-            fi
-        else
-            echo "⚠️  Could not find db container; skipping backup."
-            BACKUP_OK=false
-        fi
-    fi
-    if [ "$BACKUP_OK" = true ]; then
-        echo "✅ Backup saved: $BACKUP_FILE"
-    else
-        echo "⚠️  Database backup failed; continuing with cleanup anyway."
-    fi
-    echo ""
-
-    # 2) List sequences that likely conflict (sequences without matching table)
-    echo "🔎 Checking for orphaned GeoSight sequences (sequences without matching table)..."
-    SQL="SELECT c.relname FROM pg_class c WHERE c.relkind='S' AND c.relname ILIKE 'geosight_%' AND NOT EXISTS (SELECT 1 FROM pg_class t WHERE t.relname = substring(c.relname from '^(.*)_id_seq$') AND t.relkind='r');"
-    ORPHANED=$($COMPOSE_CMD exec -T db psql -U docker -d django -t -A -c "$SQL" || true)
-
-    if [ -z "$(echo "$ORPHANED" | tr -d '[:space:]')" ]; then
-        echo "✅ No orphaned sequences found."
-    else
-        echo "⚠️  Found orphaned sequences:" 
-        echo "$ORPHANED" | sed 's/^/  - /'
-        echo ""
-        if [[ "${AUTO_FIX:-false}" == "true" ]]; then
-            CONFIRM="y"
-        else
-            read -p "Drop these sequences now? This is destructive but reversible from the SQL backup. [y/N] " -n 1 -r
-            echo
-            CONFIRM=$REPLY
-        fi
-
-        if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
-            echo "🧹 Dropping orphaned sequences..."
-            echo "$ORPHANED" | while read -r seq; do
-                seq_trim=$(echo "$seq" | tr -d '\r')
-                if [ -n "$seq_trim" ]; then
-                    echo "Dropping sequence: $seq_trim"
-                    $COMPOSE_CMD exec -T db psql -U docker -d django -c "DROP SEQUENCE IF EXISTS \"$seq_trim\" CASCADE;" || true
-                fi
-            done
-            echo "✅ Dropped orphaned sequences"
-        else
-            echo "⚠️  No changes made. Aborting troubleshooting."
-            exit 0
-        fi
-    fi
-
-    # 3) Re-run initialization/migrations
-    echo ""
-    echo "▶️  Re-running initialization (make dev-initialize)..."
-    bash ../scripts/cleanup_init.sh "$COMPOSE_CMD"
-    make dev-initialize || {
-        echo "❌ dev-initialize failed. Check logs above for details."
-        exit 1
-    }
-
-    echo ""
-    echo "======================================"
-    echo "  Troubleshoot complete - check logs" 
-    echo "======================================"
 
