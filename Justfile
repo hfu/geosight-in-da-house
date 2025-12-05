@@ -886,17 +886,25 @@ init-troubleshoot: _check-docker _check-geosight
     # 1) Backup DB to host
     BACKUP_FILE="/tmp/geosight_db_backup_$(date +%s).sql"
     echo "📦 Creating DB backup to: $BACKUP_FILE"
-    $COMPOSE_CMD exec -T db pg_dump -U docker -d django > "$BACKUP_FILE" || {
-        echo "⚠️  Failed to create DB dump via compose exec. Trying docker exec for container..."
+    BACKUP_OK=true
+    if ! $COMPOSE_CMD exec -T db pg_dump -U docker -d django > "$BACKUP_FILE"; then
+        echo "⚠️  Failed to create DB dump via compose exec (continuing without backup)..."
         CONTAINER=$(docker ps --filter "name=geosight_db" -q | head -1)
         if [ -n "$CONTAINER" ]; then
-            docker exec -i "$CONTAINER" pg_dump -U docker -d django > "$BACKUP_FILE"
+            if ! docker exec -i "$CONTAINER" pg_dump -U docker -d django > "$BACKUP_FILE"; then
+                echo "⚠️  Docker exec pg_dump also failed (table/layout mismatch)."
+                BACKUP_OK=false
+            fi
         else
-            echo "❌ Could not find db container to dump. Aborting."
-            exit 1
+            echo "⚠️  Could not find db container; skipping backup."
+            BACKUP_OK=false
         fi
-    }
-    echo "✅ Backup saved: $BACKUP_FILE"
+    fi
+    if [ "$BACKUP_OK" = true ]; then
+        echo "✅ Backup saved: $BACKUP_FILE"
+    else
+        echo "⚠️  Database backup failed; continuing with cleanup anyway."
+    fi
     echo ""
 
     # 2) List sequences that likely conflict (sequences without matching table)
