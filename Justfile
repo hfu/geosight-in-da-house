@@ -474,14 +474,14 @@ run: _check-docker _check-geosight
         echo ""
         
         # Run development mode with ARM64 override + production webpack optimization
-        # Note: COMPOSE_FILE is passed inline to make command
+        # Note: ARGS is passed to Makefile's docker compose command
         echo "📋 Using ARM64 platform override for compatibility..."
         echo "📋 Using production webpack build (reduces CPU from 180% to near-zero)"
         echo "🚀 Starting Docker containers..."
         echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
         echo ""
         
-        COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml:deployment/docker-compose.override.production.yml" make dev
+        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.arm64.yml -f deployment/docker-compose.override.production.yml" make dev
     else
         # Run development mode without ARM64 override but with production webpack optimization
         echo "📋 Using production webpack build (reduces CPU from 180% to near-zero)"
@@ -489,7 +489,7 @@ run: _check-docker _check-geosight
         echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
         echo ""
         
-        COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.production.yml" make dev
+        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.production.yml" make dev
     fi
     
     echo ""
