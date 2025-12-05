@@ -616,7 +616,7 @@ uninstall:
             echo
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 echo "🧨 Aggressively removing geosight_* docker volumes..."
-                docker volume ls --format '{{.Name}}' | grep '^geosight_' | xargs -r docker volume rm || true
+                docker volume ls -q | grep '^geosight_' | xargs -r docker volume rm || true
                 echo "🧹 Removing local deployment/volumes directory (if present)..."
                 sudo rm -rf deployment/volumes || true
                 echo "✅ Aggressive cleanup complete"
