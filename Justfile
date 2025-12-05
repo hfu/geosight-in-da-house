@@ -910,9 +910,31 @@ init-troubleshoot: _check-docker _check-geosight
         fi
     fi
 
+    cleanup_partial_initialization() {
+        echo "🔧 Cleaning up partially applied GeoSight migrations..."
+        $COMPOSE_CMD exec -T db psql -U docker -d django <<'SQL'
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOR tbl IN SELECT tablename FROM pg_tables WHERE schemaname='geosight_data' LOOP
+        EXECUTE format('DROP TABLE IF EXISTS geosight_data.%I CASCADE;', tbl);
+    END LOOP;
+    EXECUTE 'DROP SCHEMA IF EXISTS geosight_data CASCADE';
+END$$;
+DROP SCHEMA IF EXISTS geosight_permission CASCADE;
+DROP SCHEMA IF EXISTS geosight_reference_dataset CASCADE;
+DROP SCHEMA IF EXISTS geosight_importer CASCADE;
+DROP SCHEMA IF EXISTS geosight_log CASCADE;
+DROP SCHEMA IF EXISTS geosight_georepo CASCADE;
+SQL
+        echo "✅ Removed leftover tables/schemas"
+    }
+
     # 3) Re-run initialization/migrations
     echo ""
     echo "▶️  Re-running initialization (make dev-initialize)..."
+    cleanup_partial_initialization || true
     make dev-initialize || {
         echo "❌ dev-initialize failed. Check logs above for details."
         exit 1
