@@ -363,23 +363,48 @@ run: _check-docker _check-geosight
         echo "   (First build may take 15-30 minutes on Raspberry Pi)"
         echo ""
         
-        # Build ARM64-specific images
-        echo "📦 Building PostGIS image for ARM64..."
-        if ! docker compose -f deployment/docker-compose.yml \
-            -f deployment/docker-compose.override.yml \
-            -f deployment/docker-compose.override.arm64.yml \
-            build db; then
-            echo "❌ Failed to build PostGIS image"
-            exit 1
+        # Build ARM64-specific images using buildx to ensure correct platform
+        echo "📦 Building PostGIS image for ARM64 using buildx..."
+        # Ensure buildx is available and a builder is selected
+        if ! docker buildx version &>/dev/null; then
+            echo "⚠️  docker buildx not available, falling back to 'docker compose build' (may pull wrong arch)"
+            if ! docker compose -f deployment/docker-compose.yml \
+                -f deployment/docker-compose.override.yml \
+                -f deployment/docker-compose.override.arm64.yml \
+                build db; then
+                echo "❌ Failed to build PostGIS image with docker compose"
+                exit 1
+            fi
+        else
+            # create/use a builder (idempotent)
+            if ! docker buildx inspect geosight-builder &>/dev/null; then
+                docker buildx create --name geosight-builder --use || true
+            else
+                docker buildx use geosight-builder || true
+            fi
+
+            # Build and load image for local docker (non-push) so compose can reference it
+            if ! docker buildx build --platform=linux/arm64 -t geosight-postgis:13-arm64 deployment/dockerfiles/postgis --load; then
+                echo "❌ Failed to build PostGIS image with buildx"
+                exit 1
+            fi
         fi
-        
-        echo "📦 Building pg-backup image for ARM64..."
-        if ! docker compose -f deployment/docker-compose.yml \
-            -f deployment/docker-compose.override.yml \
-            -f deployment/docker-compose.override.arm64.yml \
-            build dbbackups; then
-            echo "❌ Failed to build pg-backup image"
-            exit 1
+
+        echo "📦 Building pg-backup image for ARM64 using buildx..."
+        if ! docker buildx version &>/dev/null; then
+            # Already warned above; try compose fallback
+            if ! docker compose -f deployment/docker-compose.yml \
+                -f deployment/docker-compose.override.yml \
+                -f deployment/docker-compose.override.arm64.yml \
+                build dbbackups; then
+                echo "❌ Failed to build pg-backup image with docker compose"
+                exit 1
+            fi
+        else
+            if ! docker buildx build --platform=linux/arm64 -t geosight-pg-backup:13-arm64 deployment/dockerfiles/pg-backup --load; then
+                echo "❌ Failed to build pg-backup image with buildx"
+                exit 1
+            fi
         fi
         
         echo "✅ ARM64 images built successfully"
