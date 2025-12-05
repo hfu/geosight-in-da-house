@@ -912,15 +912,20 @@ init-troubleshoot: _check-docker _check-geosight
 
     cleanup_partial_initialization() {
         echo "🔧 Cleaning up partially applied GeoSight migrations..."
-        cleanup_sql="SET search_path TO public; \
-DROP TABLE IF EXISTS geosight_data_dashboardbookmark CASCADE; \
-DROP SCHEMA IF EXISTS geosight_data CASCADE; \
-DROP SCHEMA IF EXISTS geosight_permission CASCADE; \
-DROP SCHEMA IF EXISTS geosight_reference_dataset CASCADE; \
-DROP SCHEMA IF EXISTS geosight_importer CASCADE; \
-DROP SCHEMA IF EXISTS geosight_log CASCADE; \
-DROP SCHEMA IF EXISTS geosight_georepo CASCADE;"
-        $COMPOSE_CMD exec -T db psql -U docker -d django -c "$cleanup_sql" || true
+        cleanup_statements=(
+            "SET search_path TO public"
+            "DROP TABLE IF EXISTS geosight_data_dashboardbookmark CASCADE"
+            "DROP TABLE IF EXISTS geosight_data_dashboardbookmark_id_seq"
+            "DROP SCHEMA IF EXISTS geosight_data CASCADE"
+            "DROP SCHEMA IF EXISTS geosight_permission CASCADE"
+            "DROP SCHEMA IF EXISTS geosight_reference_dataset CASCADE"
+            "DROP SCHEMA IF EXISTS geosight_importer CASCADE"
+            "DROP SCHEMA IF EXISTS geosight_log CASCADE"
+            "DROP SCHEMA IF EXISTS geosight_georepo CASCADE"
+        )
+        for stmt in "${cleanup_statements[@]}"; do
+            $COMPOSE_CMD exec -T db psql -U docker -d django -c "$stmt" || true
+        done
         echo "✅ Removed leftover tables/schemas"
     }
 
