@@ -604,7 +604,7 @@ restart: stop
     echo ""
     echo "🌐 Access at: http://localhost:{{HTTP_PORT}}/"
 
-# Uninstall GeoSight (remove containers, images, and optionally the repository)
+# Uninstall GeoSight completely (remove all containers, volumes, images, and repository)
 uninstall:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -630,51 +630,21 @@ uninstall:
         
         cd ..
         
-        # Remove Docker volumes (and optionally underlying DB files)
+        # Aggressively remove all GeoSight-related data
         echo ""
-        read -p "Remove Docker volumes (this will delete container data)? [y/N] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            echo "🗑️  Removing Docker volumes..."
-            # List of standard volumes used by GeoSight
-            docker volume rm \
-                geosight_static-data \
-                geosight_media-data \
-                geosight_database \
-                geosight_backups-data \
-                geosight_rabbitmq \
-                geosight_redis-data \
-                geosight_tmp-data \
-                geosight_tmp-logrotate \
-                2>/dev/null || true
-
-            # Extra aggressive cleanup option: remove any docker volumes prefixed with 'geosight_'
-            read -p "Also remove any other Docker volumes named 'geosight_*' and local deployment/volumes directory? This WILL DELETE ALL DB DATA. [y/N] " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                echo "🧨 Aggressively removing geosight_* docker volumes..."
-                docker volume ls -q | grep '^geosight_' | xargs -r docker volume rm || true
-                echo "🧹 Removing local deployment/volumes directory (if present)..."
-                sudo rm -rf deployment/volumes || true
-                echo "✅ Aggressive cleanup complete"
-            else
-                echo "ℹ️  Skipped aggressive cleanup"
-            fi
-        else
-            echo "ℹ️  Skipped Docker volume removal"
-        fi
+        echo "🗑️  Removing Docker volumes..."
+        docker volume ls -q | grep '^geosight_' | xargs -r docker volume rm 2>/dev/null || true
         
-        # Ask about removing the repository
-        echo ""
-        read -p "Remove GeoSight-OS directory? This will delete all local data. [y/N] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            echo "🗑️  Removing GeoSight-OS directory..."
-            sudo rm -rf {{GEOSIGHT_DIR}}
-            echo "✅ Directory removed"
-        else
-            echo "📁 Directory kept at: {{GEOSIGHT_DIR}}"
-        fi
+        echo "🧹 Removing local deployment/volumes directory..."
+        sudo rm -rf {{GEOSIGHT_DIR}}/deployment/volumes 2>/dev/null || true
+        
+        echo "🗑️  Removing GeoSight-OS directory..."
+        sudo rm -rf {{GEOSIGHT_DIR}}
+        
+        echo "🧹 Cleaning up unused Docker resources..."
+        docker system prune -f 2>/dev/null || true
+        
+        echo "✅ Complete removal finished"
     else
         echo "⚠️  GeoSight-OS directory not found - nothing to uninstall"
     fi
@@ -806,23 +776,6 @@ shell: _check-geosight
     
     cd {{GEOSIGHT_DIR}}
     make dev-shell
-
-# Clean up Docker resources (use with caution)
-clean:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    
-    echo "🧹 Cleaning up Docker resources..."
-    echo ""
-    
-    read -p "This will remove unused Docker resources. Continue? [y/N] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker system prune -f
-        echo "✅ Cleanup complete"
-    else
-        echo "Cleanup cancelled"
-    fi
 
 # Show system information relevant for GeoSight
 info:
