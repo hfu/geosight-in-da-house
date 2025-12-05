@@ -200,6 +200,17 @@ install:
     else
         echo "✅ docker-compose.override.yml already exists"
     fi
+
+    # Sanitize compose files: remove obsolete 'version:' keys to avoid Compose V2 warnings
+    sanitize_compose() {
+        for f in deployment/docker-compose.yml deployment/docker-compose.override.yml deployment/docker-compose.override.arm64.yml; do
+            if [ -f "$f" ]; then
+                tmpfile=$(mktemp)
+                awk '!/^[[:space:]]*version:/' "$f" > "$tmpfile" && mv "$tmpfile" "$f" || true
+            fi
+        done
+    }
+    sanitize_compose
     
     # Detect architecture and setup ARM64-specific builds if needed
     ARCH=$(uname -m)
@@ -335,6 +346,9 @@ run: _check-docker _check-geosight
 
     # Repair override/Dockerfiles that may have been created before the fix
     refresh_arm64_override_if_needed
+
+    # Sanitize compose files again before build to ensure no 'version:' remains
+    sanitize_compose
     
     # Create redis directory with correct permissions (required for redis container)
     REDIS_DIR="deployment/volumes/tmp_data/redis"
