@@ -200,10 +200,15 @@ install:
     else
         echo "✅ docker-compose.override.yml already exists"
     fi
+    
+    # Apply production webpack optimization (build once, not hot reload)
+    echo "🔧 Applying production webpack optimization..."
+    cp ../templates/docker-compose.override.production.yml deployment/docker-compose.override.production.yml
+    echo "✅ Production webpack override prepared (reduces CPU from 180% to near-zero)"
 
     # Sanitize compose files: remove obsolete 'version:' keys to avoid Compose V2 warnings
     sanitize_compose() {
-        for f in deployment/docker-compose.yml deployment/docker-compose.override.yml deployment/docker-compose.override.arm64.yml; do
+        for f in deployment/docker-compose.yml deployment/docker-compose.override.yml deployment/docker-compose.override.arm64.yml deployment/docker-compose.override.production.yml; do
             if [ -f "$f" ]; then
                 tmpfile=$(mktemp)
                 awk '!/^[[:space:]]*version:/' "$f" > "$tmpfile" && mv "$tmpfile" "$f" || true
@@ -356,7 +361,7 @@ run: _check-docker _check-geosight
     export DOCKER_CLIENT_TIMEOUT={{DOCKER_CLIENT_TIMEOUT}}
 
     sanitize_compose() {
-        for f in deployment/docker-compose.yml deployment/docker-compose.override.yml deployment/docker-compose.override.arm64.yml; do
+        for f in deployment/docker-compose.yml deployment/docker-compose.override.yml deployment/docker-compose.override.arm64.yml deployment/docker-compose.override.production.yml; do
             if [ -f "$f" ]; then
                 tmpfile=$(mktemp)
                 awk '!/^[[:space:]]*version:/' "$f" > "$tmpfile" && mv "$tmpfile" "$f" || true
@@ -468,21 +473,23 @@ run: _check-docker _check-geosight
         echo "✅ ARM64 images built successfully"
         echo ""
         
-        # Run development mode with ARM64 override
+        # Run development mode with ARM64 override + production webpack optimization
         # Note: COMPOSE_FILE is passed inline to make command
         echo "📋 Using ARM64 platform override for compatibility..."
+        echo "📋 Using production webpack build (reduces CPU from 180% to near-zero)"
         echo "🚀 Starting Docker containers..."
         echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
         echo ""
         
-        COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml" make dev
+        COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml:deployment/docker-compose.override.production.yml" make dev
     else
-        # Run development mode without ARM64 override
+        # Run development mode without ARM64 override but with production webpack optimization
+        echo "📋 Using production webpack build (reduces CPU from 180% to near-zero)"
         echo "🚀 Starting Docker containers..."
         echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
         echo ""
         
-        make dev
+        COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.production.yml" make dev
     fi
     
     echo ""
@@ -499,6 +506,10 @@ run: _check-docker _check-geosight
     ARCH=$(uname -m)
     if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
         COMPOSE_CMD="$COMPOSE_CMD -f deployment/docker-compose.override.arm64.yml"
+    fi
+    # Always apply production webpack optimization
+    if [ -f deployment/docker-compose.override.production.yml ]; then
+        COMPOSE_CMD="$COMPOSE_CMD -f deployment/docker-compose.override.production.yml"
     fi
     
     while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do

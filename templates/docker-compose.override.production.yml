@@ -1,0 +1,44 @@
+# Production optimized docker-compose override for Raspberry Pi
+# This override changes webpack from development mode (hot reload) to production build
+# to reduce CPU usage from ~180% to near-zero after initial build
+
+services:
+  webpack:
+    build:
+      context: ../
+      dockerfile: deployment/docker/Dockerfile
+      target: dev
+    container_name: "geosight_webpack"
+    image: kartoza/geosight:${DJANGO_TAG}-dev
+    volumes:
+      - ../django_project:/home/web/django_project
+      - ./volumes/static:/home/web/static
+      - ./volumes/media:/home/web/media
+      - ./volumes/backups:/backups
+      - ./volumes/tmp_data:/home/web/logs
+      # Persist npm cache to speed up reinstalls (Raspberry Pi optimization)
+      - npm_cache:/root/.npm
+      # Persist node_modules to avoid reinstalling on every restart
+      - node_modules:/home/web/django_project/frontend/node_modules
+    working_dir: /home/web/django_project/frontend
+    # Production mode: build once and exit
+    # This replaces "npm install --verbose && npm run dev" (hot reload server)
+    command: sh -c "npm install && npm run build && echo 'Build complete. Keeping container alive...' && tail -f /dev/null"
+    entrypoint: []
+    # Raspberry Pi 4B memory limit: restrict webpack to 1.5GB (out of 4GB total)
+    # This prevents OOM while allowing other services to run
+    mem_limit: 1536m
+    mem_reservation: 512m
+    # No ports needed - production build outputs to static files, no dev server
+    healthcheck:
+      # Change healthcheck to verify build output exists instead of dev server
+      test: ["CMD", "test", "-f", "/home/web/django_project/frontend/bundles/main.js"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 300s  # Allow 5 minutes for initial npm install + build on Raspberry Pi
+
+# Define named volumes for caching
+volumes:
+  npm_cache:
+  node_modules:

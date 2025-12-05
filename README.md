@@ -197,11 +197,15 @@ just --set GEOSIGHT_REPO https://github.com/your-fork/GeoSight-OS.git install
 
 ### Raspberry Pi 最適化設定
 
-本プロジェクトでは、Raspberry Pi の制限されたリソースに対応するため、以下の最適化を行っています：
+本プロジェクトでは、Raspberry Pi の制限されたリソースに対応するため、以下の最適化を行っています:
 
 - **Docker タイムアウト**: 300秒（通常より長め）
 - **ログローテーション**: 7日分、50MB/ファイル
 - **プラグイン**: 最小限（cloud_native_gis, reference_dataset）
+- **Webpack 本番ビルド**: 開発モード（ホットリロード）から本番ビルドに切り替え
+  - CPU 使用率を 180% から ほぼ 0% に削減
+  - メモリ制限: 1.5GB（4GB RAM の約 1/3）
+  - npm キャッシュと node_modules の永続化で 2 回目以降の起動を高速化
 
 ## トラブルシューティング / Troubleshooting
 
@@ -366,8 +370,16 @@ Raspberry Pi では Docker イメージのビルドに時間がかかります�
 
 3. **VSCode の扱い**:
    - GeoSight-OS の setup.sh は VSCode を推奨するが、Raspberry Pi では不要
-   - webpack は開発に必要なため残す
    - リソースを節約するため、必須でない機能は積極的に削除
+
+4. **Webpack の本番モード最適化**:
+   - デフォルトの `npm run dev` は開発用ホットリロードサーバーで、常時 CPU 180%、メモリ 1GB を消費
+   - `docker-compose.override.production.yml` で `npm run build` に変更し、一度だけビルドして終了
+   - ビルド後は `tail -f /dev/null` で待機し、healthcheck の依存関係を満たしつつ CPU をほぼ消費しない
+   - `mem_limit: 1536m` でメモリ制限を設定し、Raspberry Pi 4B (4GB) で OOM を防止
+   - `npm_cache` と `node_modules` を volume で永続化し、再起動時のパッケージ再インストールを回避
+   - Healthcheck を dev server の待ち受けチェックからビルド成果物の存在確認に変更
+   - 初回ビルドに 5-10 分かかるため、`start_period: 300s` を設定
 
 ### セキュリティとベストプラクティス
 
