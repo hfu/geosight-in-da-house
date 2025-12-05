@@ -593,18 +593,39 @@ uninstall:
         
         cd ..
         
-        # Remove Docker volumes
-        echo "🗑️  Removing Docker volumes..."
-        docker volume rm \
-            geosight_static-data \
-            geosight_media-data \
-            geosight_database \
-            geosight_backups-data \
-            geosight_rabbitmq \
-            geosight_redis-data \
-            geosight_tmp-data \
-            geosight_tmp-logrotate \
-            2>/dev/null || true
+        # Remove Docker volumes (and optionally underlying DB files)
+        echo ""
+        read -p "Remove Docker volumes (this will delete container data)? [y/N] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "🗑️  Removing Docker volumes..."
+            # List of standard volumes used by GeoSight
+            docker volume rm \
+                geosight_static-data \
+                geosight_media-data \
+                geosight_database \
+                geosight_backups-data \
+                geosight_rabbitmq \
+                geosight_redis-data \
+                geosight_tmp-data \
+                geosight_tmp-logrotate \
+                2>/dev/null || true
+
+            # Extra aggressive cleanup option: remove any docker volumes prefixed with 'geosight_'
+            read -p "Also remove any other Docker volumes named 'geosight_*' and local deployment/volumes directory? This WILL DELETE ALL DB DATA. [y/N] " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo "🧨 Aggressively removing geosight_* docker volumes..."
+                docker volume ls --format '{{.Name}}' | grep '^geosight_' | xargs -r docker volume rm || true
+                echo "🧹 Removing local deployment/volumes directory (if present)..."
+                sudo rm -rf deployment/volumes || true
+                echo "✅ Aggressive cleanup complete"
+            else
+                echo "ℹ️  Skipped aggressive cleanup"
+            fi
+        else
+            echo "ℹ️  Skipped Docker volume removal"
+        fi
         
         # Ask about removing the repository
         echo ""
