@@ -377,6 +377,20 @@ run: _check-docker _check-geosight
             fi
         else
             # create/use a builder (idempotent)
+            # Ensure binfmt emulators are registered so buildx can emulate architectures
+            # Idempotent: running the installer multiple times is safe
+            echo "🔧 Ensuring binfmt/qemu emulators are registered (may require privileged docker)..."
+            docker run --privileged --rm tonistiigi/binfmt --install all || true
+
+            # Ensure deployment/dockerfiles exists and contains the ARM64 Dockerfiles
+            mkdir -p deployment/dockerfiles
+            if [[ ! -d deployment/dockerfiles/postgis ]]; then
+                cp -r ../dockerfiles/postgis deployment/dockerfiles/ || true
+            fi
+            if [[ ! -d deployment/dockerfiles/pg-backup ]]; then
+                cp -r ../dockerfiles/pg-backup deployment/dockerfiles/ || true
+            fi
+
             if ! docker buildx inspect geosight-builder &>/dev/null; then
                 docker buildx create --name geosight-builder --use || true
             else
