@@ -912,22 +912,19 @@ init-troubleshoot: _check-docker _check-geosight
 
     cleanup_partial_initialization() {
         echo "🔧 Cleaning up partially applied GeoSight migrations..."
-        $COMPOSE_CMD exec -T db psql -U docker -d django <<'SQL'
-DO $$
-DECLARE
-    tbl text;
+        local cleanup_sql="DO 
+$$
 BEGIN
-    FOR tbl IN SELECT tablename FROM pg_tables WHERE schemaname='geosight_data' LOOP
-        EXECUTE format('DROP TABLE IF EXISTS geosight_data.%I CASCADE;', tbl);
-    END LOOP;
-    EXECUTE 'DROP SCHEMA IF EXISTS geosight_data CASCADE';
+  PERFORM pg_catalog.set_config('search_path', 'public', true);
 END$$;
+DROP TABLE IF EXISTS geosight_data_dashboardbookmark CASCADE;
+DROP SCHEMA IF EXISTS geosight_data CASCADE;
 DROP SCHEMA IF EXISTS geosight_permission CASCADE;
 DROP SCHEMA IF EXISTS geosight_reference_dataset CASCADE;
 DROP SCHEMA IF EXISTS geosight_importer CASCADE;
 DROP SCHEMA IF EXISTS geosight_log CASCADE;
-DROP SCHEMA IF EXISTS geosight_georepo CASCADE;
-SQL
+DROP SCHEMA IF EXISTS geosight_georepo CASCADE;"
+        $COMPOSE_CMD exec -T db psql -U docker -d django -c "$cleanup_sql" || true
         echo "✅ Removed leftover tables/schemas"
     }
 
