@@ -220,7 +220,17 @@ install:
         # Copy ARM64-specific docker-compose override (and repair old markdown-fenced versions)
         override_path="deployment/docker-compose.override.arm64.yml"
         template_path="../templates/docker-compose.override.arm64.yml"
-        if [[ ! -f "$override_path" || $(grep -c "\`\`\`" "$override_path" || true) -gt 0 ]]; then
+        needs_refresh=0
+
+        if [[ ! -f "$override_path" ]]; then
+            needs_refresh=1
+        elif [[ $(grep -c "\`\`\`" "$override_path" || true) -gt 0 ]]; then
+            needs_refresh=1
+        elif [[ $(grep -c '^services:' "$override_path" || true) -gt 1 ]]; then
+            needs_refresh=1
+        fi
+
+        if [[ $needs_refresh -eq 1 ]]; then
             echo "📋 Creating ARM64-specific docker-compose override from template..."
             cp "$template_path" "$override_path"
             echo "✅ Created deployment/docker-compose.override.arm64.yml"
@@ -274,7 +284,7 @@ run: _check-docker _check-geosight
         echo ""
     }
 
-    # Refresh ARM64 override file if the earlier install produced a malformed (markdown fenced) copy
+    # Refresh ARM64 override file if the earlier install produced a malformed copy
     refresh_arm64_override_if_needed() {
         local arch=$(uname -m)
         if [[ "$arch" != "aarch64" && "$arch" != "arm64" ]]; then
@@ -283,10 +293,19 @@ run: _check-docker _check-geosight
 
         local override_path="deployment/docker-compose.override.arm64.yml"
         local template_path="../templates/docker-compose.override.arm64.yml"
+        local needs_refresh=0
 
-        # Fix the override if it is missing or still has markdown fences
-        if [[ ! -f "$override_path" || $(grep -c "\`\`\`" "$override_path" || true) -gt 0 ]]; then
-            echo "🔧 Refreshing ARM64 override compose file from template (removes markdown fences)..."
+        # Mark for refresh when missing, fenced, or duplicated top-level keys
+        if [[ ! -f "$override_path" ]]; then
+            needs_refresh=1
+        elif [[ $(grep -c "\`\`\`" "$override_path" || true) -gt 0 ]]; then
+            needs_refresh=1
+        elif [[ $(grep -c '^services:' "$override_path" || true) -gt 1 ]]; then
+            needs_refresh=1
+        fi
+
+        if [[ $needs_refresh -eq 1 ]]; then
+            echo "🔧 Refreshing ARM64 override compose file from template (fixes fences/duplications)..."
             cp "$template_path" "$override_path"
         fi
 
