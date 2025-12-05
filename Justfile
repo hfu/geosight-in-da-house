@@ -209,14 +209,24 @@ install:
         # Copy custom Dockerfiles for ARM64-incompatible images
         echo "📋 Copying ARM64-compatible Dockerfiles..."
         mkdir -p deployment/dockerfiles
-        cp -r ../dockerfiles/postgis deployment/dockerfiles/
-        cp -r ../dockerfiles/pg-backup deployment/dockerfiles/
-        echo "✅ ARM64 Dockerfiles copied"
+        if [[ ! -d deployment/dockerfiles/postgis ]]; then
+            cp -r ../dockerfiles/postgis deployment/dockerfiles/
+        fi
+        if [[ ! -d deployment/dockerfiles/pg-backup ]]; then
+            cp -r ../dockerfiles/pg-backup deployment/dockerfiles/
+        fi
+        echo "✅ ARM64 Dockerfiles prepared"
         
-        # Copy ARM64-specific docker-compose override
-        echo "📋 Creating ARM64-specific docker-compose override..."
-        cp ../templates/docker-compose.override.arm64.yml deployment/docker-compose.override.arm64.yml
-        echo "✅ Created deployment/docker-compose.override.arm64.yml"
+        # Copy ARM64-specific docker-compose override (and repair old markdown-fenced versions)
+        override_path="deployment/docker-compose.override.arm64.yml"
+        template_path="../templates/docker-compose.override.arm64.yml"
+        if [[ ! -f "$override_path" || $(grep -c "\`\`\`" "$override_path" || true) -gt 0 ]]; then
+            echo "📋 Creating ARM64-specific docker-compose override from template..."
+            cp "$template_path" "$override_path"
+            echo "✅ Created deployment/docker-compose.override.arm64.yml"
+        else
+            echo "✅ ARM64 docker-compose override already present"
+        fi
         
         echo ""
         echo "⚠️  ARM64 Build Notice:"
@@ -263,6 +273,32 @@ run: _check-docker _check-geosight
         fi
         echo ""
     }
+
+    # Refresh ARM64 override file if the earlier install produced a malformed (markdown fenced) copy
+    refresh_arm64_override_if_needed() {
+        local arch=$(uname -m)
+        if [[ "$arch" != "aarch64" && "$arch" != "arm64" ]]; then
+            return 0
+        fi
+
+        local override_path="deployment/docker-compose.override.arm64.yml"
+        local template_path="../templates/docker-compose.override.arm64.yml"
+
+        # Fix the override if it is missing or still has markdown fences
+        if [[ ! -f "$override_path" || $(grep -c "\`\`\`" "$override_path" || true) -gt 0 ]]; then
+            echo "🔧 Refreshing ARM64 override compose file from template (removes markdown fences)..."
+            cp "$template_path" "$override_path"
+        fi
+
+        # Ensure ARM64-specific Dockerfiles exist (needed when install was run before this repo fix)
+        mkdir -p deployment/dockerfiles
+        if [[ ! -d deployment/dockerfiles/postgis ]]; then
+            cp -r ../dockerfiles/postgis deployment/dockerfiles/
+        fi
+        if [[ ! -d deployment/dockerfiles/pg-backup ]]; then
+            cp -r ../dockerfiles/pg-backup deployment/dockerfiles/
+        fi
+    }
     
     echo "======================================"
     echo "  Starting GeoSight"
@@ -277,6 +313,9 @@ run: _check-docker _check-geosight
     
     # Detect platform for Docker
     set_docker_platform
+
+    # Repair override/Dockerfiles that may have been created before the fix
+    refresh_arm64_override_if_needed
     
     # Create redis directory with correct permissions (required for redis container)
     REDIS_DIR="deployment/volumes/tmp_data/redis"
