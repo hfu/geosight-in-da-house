@@ -402,6 +402,10 @@ run: _check-docker _check-geosight
                 echo "❌ Failed to build PostGIS image with buildx"
                 exit 1
             fi
+            # Remove any existing amd64 tag for the upstream image so compose won't try to use it
+            docker image rm kartoza/postgis:13.0 2>/dev/null || true
+            # Tag the built ARM64 image with the upstream image name so compose uses local image
+            docker tag geosight-postgis:13-arm64 kartoza/postgis:13.0 || true
         fi
 
         echo "📦 Building pg-backup image for ARM64 using buildx..."
@@ -419,6 +423,9 @@ run: _check-docker _check-geosight
                 echo "❌ Failed to build pg-backup image with buildx"
                 exit 1
             fi
+                # Tag pg-backup with upstream name to satisfy compose references
+                docker image rm kartoza/pg-backup:13.0 2>/dev/null || true
+                docker tag geosight-pg-backup:13-arm64 kartoza/pg-backup:13.0 || true
         fi
         
         echo "✅ ARM64 images built successfully"
