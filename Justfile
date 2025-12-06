@@ -594,14 +594,15 @@ restart: stop
     # Ensure redis directory has correct permissions
     sudo chown -R 999:999 deployment/volumes/tmp_data/redis 2>/dev/null || true
     
-    # On ARM64, use additional platform-specific override
+    # On ARM64, use additional platform-specific overrides including production
     ARCH=$(uname -m)
     if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f deployment/docker-compose.override.arm64.yml ]; then
-        echo "📋 Using ARM64 platform override for compatibility..."
-        export COMPOSE_FILE="deployment/docker-compose.yml:deployment/docker-compose.override.yml:deployment/docker-compose.override.arm64.yml"
+        echo "📋 Using ARM64 platform override + production webpack optimization..."
+        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.arm64.yml -f deployment/docker-compose.override.production.yml" make up
+    else
+        echo "📋 Using production webpack optimization..."
+        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.production.yml" make up
     fi
-    
-    make dev
     
     echo ""
     echo "⏳ Waiting for services to start..."
