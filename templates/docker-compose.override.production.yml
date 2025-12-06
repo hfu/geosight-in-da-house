@@ -31,8 +31,9 @@ services:
     mem_reservation: 512m
     # No ports needed - production build outputs to static files, no dev server
     healthcheck:
-      # Change healthcheck to verify build output exists instead of dev server
-      test: ["CMD", "test", "-f", "/home/web/django_project/frontend/bundles/main.js"]
+      # Change healthcheck to verify build output directory exists instead of dev server
+      # Production build outputs to bundles/frontend/ directory
+      test: ["CMD", "test", "-d", "/home/web/django_project/frontend/bundles/frontend"]
       interval: 10s
       timeout: 5s
       retries: 30
