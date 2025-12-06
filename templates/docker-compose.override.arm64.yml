@@ -24,7 +24,8 @@ services:
   # Disable logrotate on ARM64 (no ARM64-compatible image available)
   # Log rotation should be handled at the host level on Raspberry Pi
   logrotate:
-    image: hello-world:latest
-    entrypoint: ["/bin/sh", "-c", "echo 'Logrotate disabled on ARM64' && exit 0"]
+    image: alpine:latest
+    platform: linux/arm64
+    entrypoint: ["/bin/sh", "-c", "echo 'Logrotate disabled on ARM64 - use host-level logrotate' && sleep infinity"]
     restart: "no"
 
