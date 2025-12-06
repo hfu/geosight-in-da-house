@@ -21,3 +21,9 @@ services:
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
 
+  # Ensure logrotate uses ARM64-compatible image
+  logrotate:
+    image: blacklabelops/logrotate:latest
+    platform: linux/arm64
+    # Keep all other settings from main docker-compose.yml
+
