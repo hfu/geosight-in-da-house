@@ -652,6 +652,45 @@ load-demo-data: _check-geosight
     echo "📊 You should now see sample projects and data"
     echo ""
 
+# Make demo project public (fix 403 permission errors)
+make-demo-public: _check-geosight
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "======================================"
+    echo "  Making Demo Project Public"
+    echo "======================================"
+    echo ""
+    
+    cd {{GEOSIGHT_DIR}}/deployment
+    
+    # Build docker compose command with appropriate files
+    COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.override.yml"
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ -f docker-compose.override.arm64.yml ]; then
+        COMPOSE_CMD="$COMPOSE_CMD -f docker-compose.override.arm64.yml"
+    fi
+    if [ -f docker-compose.override.production.yml ]; then
+        COMPOSE_CMD="$COMPOSE_CMD -f docker-compose.override.production.yml"
+    fi
+    
+    echo "🔓 Making demo project publicly accessible..."
+    
+    # Copy Python script to container
+    $COMPOSE_CMD cp ../../scripts/make_demo_public.py django:/tmp/
+    
+    # Execute via Django shell
+    $COMPOSE_CMD exec -T django sh -c 'cat /tmp/make_demo_public.py | python manage.py shell'
+    
+    echo ""
+    echo "======================================"
+    echo "  ✅ Demo Project Now Public!"
+    echo "======================================"
+    echo ""
+    echo "🌐 Try accessing the project again:"
+    echo "   http://localhost:{{HTTP_PORT}}/en-us/project/demo-geosight-project"
+    echo ""
+
 # Uninstall GeoSight completely (remove all containers, volumes, images, and repository)
 uninstall:
     #!/usr/bin/env bash
