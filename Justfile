@@ -473,23 +473,23 @@ run: _check-docker _check-geosight
         echo "✅ ARM64 images built successfully"
         echo ""
         
-        # Run development mode with ARM64 override + production webpack optimization
+        # Run production mode with ARM64 override + production webpack optimization
         # Note: ARGS is passed to Makefile's docker compose command
         echo "📋 Using ARM64 platform override for compatibility..."
         echo "📋 Using production webpack build (reduces CPU from 180% to near-zero)"
-        echo "🚀 Starting Docker containers..."
+        echo "🚀 Starting Docker containers in PRODUCTION mode..."
         echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
         echo ""
         
-        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.arm64.yml -f deployment/docker-compose.override.production.yml" make dev
+        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.arm64.yml -f deployment/docker-compose.override.production.yml" make up
     else
-        # Run development mode without ARM64 override but with production webpack optimization
+        # Run production mode without ARM64 override but with production webpack optimization
         echo "📋 Using production webpack build (reduces CPU from 180% to near-zero)"
-        echo "🚀 Starting Docker containers..."
+        echo "🚀 Starting Docker containers in PRODUCTION mode..."
         echo "   (This may take 10-30 minutes on first run on Raspberry Pi)"
         echo ""
         
-        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.production.yml" make dev
+        ARGS="-f deployment/docker-compose.yml -f deployment/docker-compose.override.yml -f deployment/docker-compose.override.production.yml" make up
     fi
     
     echo ""
@@ -532,14 +532,6 @@ run: _check-docker _check-geosight
     echo "⏳ Waiting for other services to initialize (30 seconds)..."
     sleep 30
     
-    # Initialize the application
-    echo "🔧 Initializing GeoSight database and settings..."
-    make dev-initialize
-    
-    # Load demo data
-    echo "📊 Loading demo data..."
-    make load-test-data
-    
     echo ""
     echo "======================================"
     echo "  ✅ GeoSight is running!"
@@ -547,6 +539,9 @@ run: _check-docker _check-geosight
     echo ""
     echo "🌐 Access GeoSight at: http://localhost:{{HTTP_PORT}}/"
     echo "🔑 Login credentials: admin / admin"
+    echo ""
+    echo "⚠️  Initial Setup Required:"
+    echo "   On first run, access the admin panel to complete database initialization."
     echo ""
     echo "Useful commands:"
     echo "  just stop     - Stop GeoSight"
