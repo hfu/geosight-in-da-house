@@ -21,9 +21,10 @@ services:
     platform: linux/arm64
     # Keep all other settings from main docker-compose.yml
 
-  # Ensure logrotate uses ARM64-compatible image
+  # Disable logrotate on ARM64 (no ARM64-compatible image available)
+  # Log rotation should be handled at the host level on Raspberry Pi
   logrotate:
-    image: blacklabelops/logrotate:latest
-    platform: linux/arm64
-    # Keep all other settings from main docker-compose.yml
+    image: hello-world:latest
+    entrypoint: ["/bin/sh", "-c", "echo 'Logrotate disabled on ARM64' && exit 0"]
+    restart: "no"
 
